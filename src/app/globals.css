@@ -1,26 +1,236 @@
 @import "tailwindcss";
 
+/* ─── PatchMood design tokens — underground mood archive ─── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surface — warm concrete charcoal */
+  --pm-bg:              oklch(0.13 0.006 40);
+  --pm-bg-deep:         oklch(0.10 0.005 40);
+  --pm-surface:         oklch(0.16 0.006 40);
+  --pm-surface-raised:  oklch(0.20 0.007 40);
+  --pm-border:          oklch(0.30 0.008 40);
+  --pm-border-strong:   oklch(0.42 0.010 40);
+
+  /* Text */
+  --pm-fg:              oklch(0.97 0.004 60);
+  --pm-fg-muted:        oklch(0.68 0.006 50);
+  --pm-fg-subtle:       oklch(0.50 0.006 50);
+
+  /* Accent — Ferrari red + neon */
+  --pm-accent:          oklch(0.58 0.225 27);
+  --pm-accent-bright:   oklch(0.66 0.235 35);
+  --pm-accent-dim:      oklch(0.42 0.16 27);
+  --pm-neon:            oklch(0.84 0.20 145);
+
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--pm-bg);
+  --color-foreground: var(--pm-fg);
+  --font-sans: var(--font-body);
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Base ─── */
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--pm-bg);
+  color: var(--pm-fg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Display headline helper ─── */
+.pm-display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: 0.005em;
+}
+
+/* ─── Comet dot on button border (loading) ─── */
+/* A glowing dot rides the perimeter; staggered fainter dots trail it. */
+@keyframes pm-comet {
+  0%   { top: 0;    left: 0;    }
+  25%  { top: 0;    left: 100%; }
+  50%  { top: 100%; left: 100%; }
+  75%  { top: 100%; left: 0;    }
+  100% { top: 0;    left: 0;    }
+}
+.pm-comet {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pm-accent-bright);
+  box-shadow: 0 0 7px 1px var(--pm-accent-bright), 0 0 2px var(--pm-accent);
+  transform: translate(-50%, -50%);
+  animation: pm-comet 2.4s linear infinite;
+  animation-delay: -0.18s;
+  pointer-events: none;
+}
+.pm-comet-2 {
+  width: 4px;
+  height: 4px;
+  opacity: 0.5;
+  box-shadow: 0 0 4px var(--pm-accent);
+  animation-delay: -0.09s;
+}
+.pm-comet-3 {
+  width: 3px;
+  height: 3px;
+  opacity: 0.22;
+  box-shadow: none;
+  animation-delay: 0s;
+}
+
+/* ─── Burger toggle — "archive index" bars ─── */
+/* Three left-aligned bars of unequal width, like catalogue ledger lines.
+   The middle (short) bar is the Ferrari-red index mark; on hover the lines
+   "scan" out to full width. Open state morphs into a red registration X. */
+.pm-burger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -0.55rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Authoritative hide at the md breakpoint — a bare `display` rule here would
+   otherwise out-cascade Tailwind's `md:hidden` utility (same specificity, later
+   source order) and leak the burger onto desktop, centered behind the wordmark. */
+@media (min-width: 768px) {
+  .pm-burger { display: none; }
+}
+.pm-burger-box {
+  position: relative;
+  width: 23px;
+  height: 15px;
+}
+.pm-burger-bar {
+  position: absolute;
+  left: 0;
+  height: 2px;
+  background: var(--pm-fg);
+  transition:
+    width 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 340ms cubic-bezier(0.7, 0, 0.2, 1),
+    background-color 300ms ease,
+    opacity 160ms ease;
+  will-change: transform, width;
+}
+.pm-burger-bar-1 { top: 0;   width: 23px; }
+.pm-burger-bar-2 { top: 6.5px; width: 11px; background: var(--pm-accent); }
+.pm-burger-bar-3 { top: 13px; width: 17px; }
+
+/* Hover (closed): the red index bar + short bar scan to full width */
+.pm-burger:hover .pm-burger-bar-2 { width: 23px; }
+.pm-burger:hover .pm-burger-bar-3 { width: 23px; }
+.pm-burger:hover .pm-burger-bar-1 { background: var(--pm-accent-bright); }
+
+/* Open: bars 1 & 3 cross into a red X, middle bar collapses */
+.pm-burger[data-open='true'] .pm-burger-bar-1 {
+  top: 6.5px;
+  width: 23px;
+  transform: rotate(45deg);
+  background: var(--pm-accent-bright);
+}
+.pm-burger[data-open='true'] .pm-burger-bar-2 {
+  width: 23px;
+  opacity: 0;
+  transform: scaleX(0);
+}
+.pm-burger[data-open='true'] .pm-burger-bar-3 {
+  top: 6.5px;
+  width: 23px;
+  transform: rotate(-45deg);
+  background: var(--pm-accent-bright);
+}
+
+/* ─── Mobile menu link — big archive entry ─── */
+.pm-menu-link {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  transition: color 200ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease;
+  color: var(--pm-fg);
+}
+.pm-menu-link:hover { color: var(--pm-accent-bright); }
+.pm-menu-link:hover .pm-menu-rule { width: 2.5rem; }
+.pm-menu-rule {
+  display: inline-block;
+  width: 0;
+  height: 2px;
+  background: var(--pm-accent);
+  transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─── Primary CTA (server-rendered, hover via CSS) ─── */
+.pm-cta { background: var(--pm-accent); transition: background 280ms; }
+.pm-cta:hover { background: var(--pm-accent-bright); }
+
+/* ─── Archive back link ─── */
+.pm-backlink { color: var(--pm-fg-subtle); transition: color 160ms; }
+.pm-backlink:hover { color: var(--pm-fg); }
+.pm-backlink:hover .pm-backlink-arrow { transform: translateX(-3px); }
+.pm-backlink-arrow { transition: transform 220ms cubic-bezier(0.22,1,0.36,1); }
+
+/* ─── Related piece card ─── */
+.pm-related { border: 1px solid var(--pm-border); transition: border-color 250ms; }
+.pm-related:hover { border-color: var(--pm-accent); }
+.pm-related:hover .pm-related-img { transform: scale(1.05); }
+.pm-related-img { transition: transform 600ms cubic-bezier(0.22,1,0.36,1); }
+.pm-related:hover .pm-related-arrow { transform: translateX(3px); }
+.pm-related-arrow { transition: transform 260ms; }
+
+/* ─── Image crossfade (gallery) ─── */
+@keyframes pm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ─── Reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--pm-bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--pm-border); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--pm-accent-dim); }
+
+/* ─── Category rail scrollbar (horizontal) ─── */
+/* Minimal: thin red bar, invisible track. No knurl, no bevel.
+   No scrollbar-width/color here — Chrome 121+ would disable ::-webkit-scrollbar. */
+.pm-rail-scroll::-webkit-scrollbar { height: 3px; }
+.pm-rail-scroll::-webkit-scrollbar-track { background: transparent; }
+.pm-rail-scroll::-webkit-scrollbar-thumb {
+  background: var(--pm-accent);
+  border-radius: 0;
+}
+.pm-rail-scroll::-webkit-scrollbar-thumb:hover { background: var(--pm-accent-bright); }
+.pm-rail-scroll::-webkit-scrollbar-thumb:active { background: var(--pm-accent-bright); }
+/* Firefox fallback */
+@supports (-moz-appearance: none) {
+  .pm-rail-scroll { scrollbar-width: thin; scrollbar-color: var(--pm-accent) transparent; }
+}
+
+/* ─── Selection ─── */
+::selection {
+  background: oklch(0.58 0.225 27 / 0.30);
+  color: var(--pm-fg);
 }

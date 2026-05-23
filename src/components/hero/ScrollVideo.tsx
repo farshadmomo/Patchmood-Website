@@ -1,0 +1,189 @@
+'use client'
+
+import { useRef, useEffect, useState } from 'react'
+import { gsap, ScrollTrigger } from '@/lib/gsap'
+import { useScrollVideo } from '@/hooks/useScrollVideo'
+
+export default function HeroSection() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const taglineRef = useRef<HTMLParagraphElement>(null)
+  const [videoLoaded, setVideoLoaded] = useState(false)
+
+  // Handle cached video — readyState already ≥ 1 before handler attaches
+  useEffect(() => {
+    const v = videoRef.current
+    if (v && v.readyState >= 1) {
+      setVideoLoaded(true)
+      return
+    }
+    // Fallback: show video after 3s regardless
+    const t = setTimeout(() => setVideoLoaded(true), 3000)
+    return () => clearTimeout(t)
+  }, [])
+
+  // Scrub video currentTime with scroll progress
+  useScrollVideo(containerRef, videoRef)
+
+  // Text animations
+  useEffect(() => {
+    const els = [headingRef.current, taglineRef.current]
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      gsap.set(els, { opacity: 1, y: 0 })
+      return
+    }
+
+    let st: ReturnType<typeof ScrollTrigger.create> | null = null
+
+    const ctx = gsap.context(() => {
+      const createScrollFade = () => {
+        st = ScrollTrigger.create({
+          trigger: containerRef.current,
+          start: 'top top',
+          end: '25% top',
+          scrub: 0.8,
+          onUpdate: (self) => {
+            gsap.set(els, { opacity: 1 - self.progress, y: self.progress * -40 })
+          },
+        })
+      }
+
+      if (window.scrollY < 50) {
+        // At the top: entrance animation first, ScrollTrigger created after so they can't conflict
+        gsap.set(els, { opacity: 0, y: 50 })
+        gsap.to(els, {
+          opacity: 1,
+          y: 0,
+          duration: 1.4,
+          ease: 'power3.out',
+          stagger: 0.25,
+          delay: 0.5,
+          onComplete: createScrollFade,
+        })
+      } else {
+        // Not at top (e.g. navigated back while scrolled): snap to correct state immediately
+        const container = containerRef.current
+        const progress = container
+          ? Math.min(Math.max(window.scrollY / (container.offsetHeight * 0.25), 0), 1)
+          : 0
+        gsap.set(els, { opacity: 1 - progress, y: progress * -40 })
+        createScrollFade()
+      }
+    }, containerRef)
+
+    return () => {
+      ctx.revert()
+      st?.kill()
+    }
+  }, [])
+
+  return (
+    // 500vh gives the scroll space for video scrubbing
+    <div ref={containerRef} style={{ height: '500vh' }} className="relative">
+      {/* Sticky container — holds both video and text overlay */}
+      <div className="sticky top-0 h-screen w-full overflow-hidden bg-black">
+        {/* Loading backdrop */}
+        {!videoLoaded && (
+          <div className="absolute inset-0 bg-black" />
+        )}
+
+        {/* Scroll-scrubbed video */}
+        <video
+          ref={videoRef}
+          src="/video/hero.mp4"
+          muted
+          playsInline
+          preload="metadata"
+          onLoadedMetadata={() => setVideoLoaded(true)}
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+          style={{ opacity: videoLoaded ? 1 : 0 }}
+          // metadata-only: stops the eager multi-MB download from blocking first paint
+        />
+
+        {/* Gradient overlay for text legibility — heavier bottom-left for the title block */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(to top, oklch(0.08 0.005 40 / 0.78) 0%, oklch(0.08 0.005 40 / 0.15) 38%, transparent 60%), radial-gradient(120% 90% at 0% 100%, oklch(0.08 0.005 40 / 0.6) 0%, transparent 55%)',
+          }}
+        />
+
+        {/* Hero text — anchored to the dark lower-left, fades out on scroll */}
+        <div className="absolute inset-0 flex flex-col justify-end items-start pointer-events-none px-5 md:px-10 pb-16 md:pb-24">
+          <div className="w-full max-w-[44rem]">
+            {/* Title group */}
+            <div ref={headingRef} style={{ opacity: 0, willChange: 'opacity, transform' }} className="select-none">
+              <p
+                className="mb-3.5 md:mb-4"
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'clamp(0.5625rem, 1vw, 0.75rem)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.3em',
+                  color: 'var(--pm-accent-bright)',
+                }}
+              >
+                <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;Eclectic mood curator&nbsp;&middot;&nbsp;Est. MMXXVI
+              </p>
+              <h1
+                className="pm-display text-white"
+                style={{
+                  fontSize: 'clamp(2.5rem, 8vw, 7rem)',
+                  textShadow: '0 6px 80px oklch(0.08 0.005 40 / 0.7)',
+                }}
+              >
+                Wear your
+                <br />
+                <span style={{ color: 'var(--pm-accent)' }}>mood</span>
+              </h1>
+            </div>
+
+            {/* Descriptor + scroll hint */}
+            <div
+              ref={taglineRef}
+              style={{ opacity: 0, willChange: 'opacity, transform' }}
+              className="mt-6 md:mt-7 flex flex-col sm:flex-row sm:items-end gap-5 sm:gap-10 select-none"
+            >
+              <p
+                className="max-w-sm leading-relaxed"
+                style={{
+                  fontSize: 'clamp(0.8125rem, 1.4vw, 0.9375rem)',
+                  color: 'oklch(0.82 0.005 60)',
+                  lineHeight: 1.7,
+                }}
+              >
+                Six feelings, engineered into cloth. A brutalist mood archive for
+                those who collect states of mind.
+              </p>
+              <div className="flex items-center gap-3 shrink-0" aria-hidden="true">
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.625rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.28em',
+                    color: 'var(--pm-fg-muted)',
+                  }}
+                >
+                  Scroll to enter
+                </span>
+                <span
+                  className="inline-block"
+                  style={{
+                    width: '2.5rem',
+                    height: '1px',
+                    background:
+                      'linear-gradient(to right, var(--pm-accent), transparent)',
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
