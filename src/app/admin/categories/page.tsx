@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/pocketbase/server'
+import { toCategory } from '@/lib/pocketbase/transform'
 import CategoriesClient from './CategoriesClient'
-import type { Category } from '@/types'
 
 export default async function CategoriesPage() {
-  const supabase = await createClient()
-  const { data } = await supabase.from('categories').select('*').order('name')
-  return <CategoriesClient initialCategories={(data ?? []) as Category[]} />
+  const pb = await createClient()
+  const records = await pb.collection('categories').getFullList({ sort: 'name' })
+  return <CategoriesClient initialCategories={records.map(toCategory)} />
 }

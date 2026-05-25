@@ -1,57 +1,60 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/pocketbase/server'
+import { toCategory } from '@/lib/pocketbase/transform'
+import { isAnyAdmin, pbErrorResponse, toSlug } from '@/lib/pocketbase/api'
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createClient()
+  const pb = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.app_metadata?.role !== 'admin') {
+  if (!isAnyAdmin(pb)) {
     return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
   }
 
   const { id } = await params
-  const body = await request.json()
+  const formData = await request.formData()
 
-  const update: { name?: string; image_url?: string | null } = {}
-  if (typeof body.name === 'string' && body.name.trim()) update.name = body.name.trim()
-  if ('image_url' in body) update.image_url = body.image_url || null
+  const data: Record<string, unknown> = {}
+  const name = formData.get('name')
+  if (typeof name === 'string' && name.trim()) {
+    data.name = name.trim()
+    data.slug = toSlug(name)
+  }
+  const image = formData.get('image')
+  if (image instanceof File && image.size > 0) data.image = image
+  if (formData.get('removeImage') === 'true') data.image = null
 
-  if (Object.keys(update).length === 0) {
+  if (Object.keys(data).length === 0) {
     return NextResponse.json({ success: false, error: 'Nothing to update' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
-    .from('categories')
-    .update(update)
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) {
-    const status = error.code === '23505' ? 409 : 500
-    return NextResponse.json({ success: false, error: error.message }, { status })
+  try {
+    const svc = pb.authStore.isSuperuser ? pb : await createServiceClient()
+    const record = await svc.collection('categories').update(id, data)
+    return NextResponse.json({ success: true, data: toCategory(record) })
+  } catch (err) {
+    return pbErrorResponse(err, 'Failed to update category', 'Category already exists')
   }
-
-  return NextResponse.json({ success: true, data })
 }
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createClient()
+  const pb = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.app_metadata?.role !== 'admin') {
+  if (!isAnyAdmin(pb)) {
     return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
   }
 
   const { id } = await params
-  const { error } = await supabase.from('categories').delete().eq('id', id)
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 })
-
-  return NextResponse.json({ success: true })
+  try {
+    const svc = pb.authStore.isSuperuser ? pb : await createServiceClient()
+    await svc.collection('categories').delete(id)
+    return NextResponse.json({ success: true })
+  } catch {
+    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
+  }
 }

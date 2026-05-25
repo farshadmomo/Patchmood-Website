@@ -1,30 +1,28 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import type { Product } from '@/types'
+import { createClient } from '@/lib/pocketbase/server'
+import { toProduct } from '@/lib/pocketbase/transform'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export default async function AdminDashboard() {
-  const supabase = await createClient()
+  const pb = await createClient()
 
-  const [
-    { count: total },
-    { count: featuredCount },
-    { count: categoryCount },
-    { data: recent },
-  ] = await Promise.all([
-    supabase.from('products').select('*', { count: 'exact', head: true }),
-    supabase.from('products').select('*', { count: 'exact', head: true }).eq('featured', true),
-    supabase.from('categories').select('*', { count: 'exact', head: true }),
-    supabase.from('products').select('*').order('created_at', { ascending: false }).limit(5),
+  const [totalRes, featuredRes, categoryRes, recentRes] = await Promise.all([
+    pb.collection('products').getList(1, 1, { fields: 'id' }),
+    pb.collection('products').getList(1, 1, { fields: 'id', filter: 'featured = true' }),
+    pb.collection('categories').getList(1, 1, { fields: 'id' }),
+    pb.collection('products').getList(1, 5, { sort: '-created' }),
   ])
 
-  const recentProducts = (recent ?? []) as Product[]
+  const total = totalRes.totalItems
+  const featuredCount = featuredRes.totalItems
+  const categoryCount = categoryRes.totalItems
+  const recentProducts = recentRes.items.map(toProduct)
 
   return (
-    <div style={{ padding: '3rem 2.5rem 4rem', maxWidth: '56rem' }}>
+    <div className="px-4 pt-6 pb-12 md:px-10 md:pt-12 md:pb-16" style={{ maxWidth: '56rem' }}>
       {/* Page header */}
       <header style={{ marginBottom: '3rem' }}>
         <p

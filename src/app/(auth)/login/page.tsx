@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/pocketbase/client";
 import { useRouteTransition } from "@/components/transition/TransitionProvider";
+import { useLocale } from "@/i18n/LocaleProvider";
 
 export default function LoginPage() {
   const router = useRouter();
   const { wipeTo } = useRouteTransition();
+  const { t } = useLocale();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,20 +19,28 @@ export default function LoginPage() {
     setLoading(true);
 
     const data = new FormData(e.currentTarget);
-    const supabase = createClient();
+    const pb = createClient();
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: data.get("email") as string,
-      password: data.get("password") as string,
-    });
-
-    if (authError) {
+    try {
+      // Try master (superuser) first, then regular admin collection
+      try {
+        await pb.collection("_superusers").authWithPassword(
+          data.get("email") as string,
+          data.get("password") as string,
+        );
+      } catch {
+        await pb.collection("admins").authWithPassword(
+          data.get("email") as string,
+          data.get("password") as string,
+        );
+      }
+    } catch {
       setLoading(false);
-      setError("Invalid email or password");
+      setError(t.login.error);
       return;
     }
 
-    wipeTo("entering archive", () => {
+    wipeTo(t.login.wipe, () => {
       router.push("/");
       router.refresh();
     });
@@ -51,19 +61,19 @@ export default function LoginPage() {
           marginBottom: "0.5rem",
         }}
       >
-        <span style={{ color: "var(--pm-accent)" }}>&#9632;</span>&nbsp;&nbsp;Mood archive
+        <span style={{ color: "var(--pm-accent)" }}>&#9632;</span>&nbsp;&nbsp;{t.login.eyebrow}
       </p>
       <h1
         className="pm-display text-white mb-8"
         style={{ fontSize: "2.25rem" }}
       >
-        Sign in
+        {t.login.title}
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label htmlFor="email" className="block text-[0.6875rem] mb-1.5 uppercase tracking-[0.18em]" style={{ color: "var(--pm-fg-subtle)" }}>
-            Email
+            {t.login.email}
           </label>
           <input
             id="email"
@@ -80,7 +90,7 @@ export default function LoginPage() {
 
         <div>
           <label htmlFor="password" className="block text-[0.6875rem] mb-1.5 uppercase tracking-[0.18em]" style={{ color: "var(--pm-fg-subtle)" }}>
-            Password
+            {t.login.password}
           </label>
           <input
             id="password"
@@ -121,7 +131,7 @@ export default function LoginPage() {
               aria-hidden="true"
             />
           )}
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? t.login.signingIn : t.login.submit}
         </button>
       </form>
     </div>

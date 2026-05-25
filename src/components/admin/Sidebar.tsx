@@ -3,13 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/pocketbase/client";
 import ProgressLink from "@/components/transition/ProgressLink";
 import CometTrail from "@/components/ui/CometTrail";
 
 interface SidebarProps {
   userName: string | null | undefined;
   userEmail: string | null | undefined;
+  isMobile?: boolean;
+  open?: boolean;
+  onClose?: () => void;
+  isMaster?: boolean;
 }
 
 const NAV = [
@@ -49,10 +53,25 @@ const NAV = [
   },
 ];
 
-export default function Sidebar({ userName, userEmail }: SidebarProps) {
+const MASTER_NAV = {
+  href: "/admin/admins",
+  label: "Admins",
+  icon: (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+      <circle cx="5" cy="4.5" r="2" stroke="currentColor" strokeWidth="1.25" />
+      <path d="M1 12.5C1 10.29 2.79 8.5 5 8.5S9 10.29 9 12.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+      <circle cx="11" cy="5" r="1.5" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M9.5 12.5c0-1.38.9-2.6 2-3.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
+  ),
+  exact: false,
+};
+
+export default function Sidebar({ userName, userEmail, isMobile, open, onClose, isMaster }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
+  const nav = isMaster ? [...NAV, MASTER_NAV] : NAV;
 
   function isActive(href: string, exact: boolean) {
     return exact ? pathname === href : pathname.startsWith(href);
@@ -60,8 +79,8 @@ export default function Sidebar({ userName, userEmail }: SidebarProps) {
 
   async function handleSignOut() {
     setSigningOut(true);
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    const pb = createClient();
+    pb.authStore.clear();
     router.push("/");
     router.refresh();
   }
@@ -78,42 +97,66 @@ export default function Sidebar({ userName, userEmail }: SidebarProps) {
         background: "var(--pm-surface)",
         borderRight: "1px solid var(--pm-border)",
         zIndex: 40,
+        transform: isMobile ? (open ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
+        transition: "transform 250ms cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
       {/* Brand */}
-      <div style={{ padding: "1.75rem 1.25rem 1.25rem" }}>
-        <p
-          style={{
-            fontSize: "0.625rem",
-            textTransform: "uppercase",
-            letterSpacing: "0.3em",
-            color: "var(--pm-fg-subtle)",
-            marginBottom: "0.25rem",
-          }}
-        >
-          Admin
-        </p>
-        <Link
-          href="/"
-          style={{
-            fontFamily: "var(--font-display)",
-            textTransform: "uppercase",
-            fontSize: "1.5rem",
-            fontWeight: 400,
-            color: "var(--pm-fg)",
-            textDecoration: "none",
-            letterSpacing: "0.02em",
-          }}
-        >
-          Patch<span style={{ color: "var(--pm-accent)" }}>mood</span>
-        </Link>
+      <div style={{ padding: "1.75rem 1.25rem 1.25rem", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div>
+          <p
+            style={{
+              fontSize: "0.625rem",
+              textTransform: "uppercase",
+              letterSpacing: "0.3em",
+              color: "var(--pm-fg-subtle)",
+              marginBottom: "0.25rem",
+            }}
+          >
+            Admin
+          </p>
+          <Link
+            href="/"
+            style={{
+              fontFamily: "var(--font-display)",
+              textTransform: "uppercase",
+              fontSize: "1.5rem",
+              fontWeight: 400,
+              color: "var(--pm-fg)",
+              textDecoration: "none",
+              letterSpacing: "0.02em",
+            }}
+          >
+            Patch<span style={{ color: "var(--pm-accent)" }}>mood</span>
+          </Link>
+        </div>
+        {isMobile && (
+          <button
+            onClick={onClose}
+            aria-label="Close navigation"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--pm-fg-subtle)",
+              padding: "0.25rem",
+              display: "flex",
+              alignItems: "center",
+              marginTop: "0.25rem",
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
       </div>
 
       <div style={{ height: "1px", background: "var(--pm-border)", margin: "0 1.25rem" }} />
 
       {/* Nav */}
       <nav style={{ padding: "1rem 0.75rem", flex: 1 }} aria-label="Admin navigation">
-        {NAV.map((item) => {
+        {nav.map((item) => {
           const active = isActive(item.href, item.exact);
           return (
             <ProgressLink

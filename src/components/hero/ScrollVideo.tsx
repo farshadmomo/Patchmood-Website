@@ -3,8 +3,10 @@
 import { useRef, useEffect, useState } from 'react'
 import { gsap, ScrollTrigger } from '@/lib/gsap'
 import { useScrollVideo } from '@/hooks/useScrollVideo'
+import { useLocale } from '@/i18n/LocaleProvider'
 
 export default function HeroSection() {
+  const { t } = useLocale()
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -126,7 +128,7 @@ export default function HeroSection() {
                   color: 'var(--pm-accent-bright)',
                 }}
               >
-                <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;Eclectic mood curator&nbsp;&middot;&nbsp;Est. MMXXVI
+                <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;{t.hero.eyebrow}&nbsp;&middot;&nbsp;{t.hero.estTag}
               </p>
               <h1
                 className="pm-display text-white"
@@ -135,9 +137,9 @@ export default function HeroSection() {
                   textShadow: '0 6px 80px oklch(0.08 0.005 40 / 0.7)',
                 }}
               >
-                Wear your
+                {t.hero.titleLine1}
                 <br />
-                <span style={{ color: 'var(--pm-accent)' }}>mood</span>
+                <span style={{ color: 'var(--pm-accent)' }}>{t.hero.titleAccent}</span>
               </h1>
             </div>
 
@@ -155,8 +157,7 @@ export default function HeroSection() {
                   lineHeight: 1.7,
                 }}
               >
-                Six feelings, engineered into cloth. A brutalist mood archive for
-                those who collect states of mind.
+                {t.hero.body}
               </p>
               <div className="flex items-center gap-3 shrink-0" aria-hidden="true">
                 <span
@@ -168,7 +169,7 @@ export default function HeroSection() {
                     color: 'var(--pm-fg-muted)',
                   }}
                 >
-                  Scroll to enter
+                  {t.hero.scrollHint}
                 </span>
                 <span
                   className="inline-block"

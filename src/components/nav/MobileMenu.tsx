@@ -4,6 +4,11 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import ProgressLink from '@/components/transition/ProgressLink'
 import CometTrail from '@/components/ui/CometTrail'
+import LanguageToggle from './LanguageToggle'
+import { useLocale } from '@/i18n/LocaleProvider'
+
+// Static JSON (Vercel) deploy has no PocketBase — hide auth entry points.
+const JSON_MODE = process.env.NEXT_PUBLIC_DATA_SOURCE === 'json'
 
 export interface MobileNavLink {
   id: string
@@ -35,6 +40,7 @@ export default function MobileMenu({
   onSignOut,
   onOpenSearch,
 }: MobileMenuProps) {
+  const { t, dir } = useLocale()
   // Lock body scroll + close on Escape while open
   useEffect(() => {
     if (!open) return
@@ -71,14 +77,21 @@ export default function MobileMenu({
 
       {/* Drawer panel */}
       <nav
-        aria-label="Mobile"
-        className="absolute top-0 right-0 h-full flex flex-col"
+        aria-label={t.mobile.navigation}
+        className="absolute top-0 h-full flex flex-col"
         style={{
+          insetInlineEnd: 0,
           width: 'min(86vw, 380px)',
           background: 'var(--pm-bg-deep)',
-          borderLeft: '1px solid var(--pm-border)',
-          boxShadow: '-24px 0 60px oklch(0.04 0.005 40 / 0.6)',
-          transform: open ? 'translateX(0)' : 'translateX(100%)',
+          borderInlineStart: '1px solid var(--pm-border)',
+          boxShadow: dir === 'rtl'
+            ? '24px 0 60px oklch(0.04 0.005 40 / 0.6)'
+            : '-24px 0 60px oklch(0.04 0.005 40 / 0.6)',
+          transform: open
+            ? 'translateX(0)'
+            : dir === 'rtl'
+              ? 'translateX(-100%)'
+              : 'translateX(100%)',
           transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
           paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))',
         }}
@@ -89,7 +102,7 @@ export default function MobileMenu({
           style={{
             position: 'absolute',
             top: 0,
-            left: 0,
+            insetInlineStart: 0,
             width: '3px',
             height: '100%',
             background: 'linear-gradient(to bottom, var(--pm-accent), transparent 70%)',
@@ -107,7 +120,7 @@ export default function MobileMenu({
               color: 'var(--pm-fg-subtle)',
             }}
           >
-            <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;Navigation
+            <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;{t.mobile.navigation}
           </span>
           <span
             aria-hidden="true"
@@ -127,7 +140,11 @@ export default function MobileMenu({
               className="pm-menu-link select-none"
               style={{
                 opacity: open ? 1 : 0,
-                transform: open ? 'translateX(0)' : 'translateX(28px)',
+                transform: open
+                  ? 'translateX(0)'
+                  : dir === 'rtl'
+                    ? 'translateX(-28px)'
+                    : 'translateX(28px)',
                 transitionDelay: open ? `${120 + i * 70}ms` : '0ms',
               }}
             >
@@ -154,7 +171,7 @@ export default function MobileMenu({
           <span style={{ display: 'block', height: '1px', background: 'var(--pm-border)' }} />
         </div>
 
-        {/* Utility row — search */}
+        {/* Utility row — search + language */}
         <div className="px-7">
           <button
             onClick={() => {
@@ -175,14 +192,15 @@ export default function MobileMenu({
               <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
               <path d="M11 11l3.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
             </svg>
-            Search the archive
+            {t.mobile.searchArchive}
           </button>
+          <LanguageToggle variant="menu" onToggled={onClose} />
         </div>
 
         {/* Account block — pinned to the bottom */}
         <div className="mt-auto px-7 pb-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
           <span style={{ display: 'block', height: '1px', background: 'var(--pm-border)', marginBottom: '1.25rem' }} />
-          {userInitial ? (
+          {JSON_MODE ? null : userInitial ? (
             <div className="flex flex-col gap-1.5">
               {isAdmin && (
                 <ProgressLink
@@ -198,7 +216,7 @@ export default function MobileMenu({
                     padding: '0.6rem 0',
                   }}
                 >
-                  Admin panel
+                  {t.nav.adminPanel}
                 </ProgressLink>
               )}
               <button
@@ -209,7 +227,7 @@ export default function MobileMenu({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  textAlign: 'left',
+                  textAlign: 'start',
                   fontFamily: 'var(--font-mono)',
                   fontSize: '0.75rem',
                   textTransform: 'uppercase',
@@ -222,7 +240,7 @@ export default function MobileMenu({
                 }}
               >
                 {signingOut && <CometTrail />}
-                {signingOut ? 'Signing out…' : 'Sign out'}
+                {signingOut ? t.nav.signingOut : t.nav.signOut}
               </button>
             </div>
           ) : (
@@ -241,14 +259,14 @@ export default function MobileMenu({
                 padding: '0.85rem',
               }}
             >
-              Sign in
+              {t.nav.signIn}
             </Link>
           )}
           <p
             className="mt-6"
             style={{ fontFamily: 'var(--font-mono)', fontSize: '0.5625rem', letterSpacing: '0.24em', color: 'var(--pm-fg-subtle)', textTransform: 'uppercase' }}
           >
-            Patch<span style={{ color: 'var(--pm-accent)' }}>mood</span> &middot; Est. MMXXVI
+            Patch<span style={{ color: 'var(--pm-accent)' }}>mood</span> &middot; {t.mobile.estTag}
           </p>
         </div>
       </nav>

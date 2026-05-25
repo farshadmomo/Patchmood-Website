@@ -52,6 +52,38 @@ body {
   letter-spacing: 0.005em;
 }
 
+/* ─── Persian (Farsi) mode ─── */
+/* Swap the Latin type for the Persian pairing. Mono is remapped too so the
+   "ledger label" text actually renders Persian glyphs (a Latin monospace
+   font can't). */
+.lang-fa {
+  --font-body: var(--font-fa-body);
+  --font-display: var(--font-fa-display);
+  --font-mono: var(--font-fa-body);
+}
+/* Tracking severs Persian/Arabic cursive joins — neutralise it everywhere in
+   fa mode (the design leans on heavy letter-spacing that Persian can't take). */
+.lang-fa,
+.lang-fa * {
+  letter-spacing: normal !important;
+}
+/* Lalezar sits taller than the condensed Latin display face; give it air. */
+.lang-fa .pm-display {
+  line-height: 1.18;
+}
+
+/* ─── RTL directional flips ─── */
+/* Logical properties handle most mirroring automatically once dir="rtl" is set.
+   These cover the directional arrow glyphs, which are transform-driven and so
+   do not auto-flip. */
+.pm-burger { margin-inline-start: -0.55rem; }
+
+[dir='rtl'] .pm-flip-rtl { transform: scaleX(-1); }
+[dir='rtl'] .pm-backlink-arrow { transform: scaleX(-1); }
+[dir='rtl'] .pm-backlink:hover .pm-backlink-arrow { transform: scaleX(-1) translateX(-3px); }
+[dir='rtl'] .pm-related-arrow { transform: scaleX(-1); }
+[dir='rtl'] .pm-related:hover .pm-related-arrow { transform: scaleX(-1) translateX(3px); }
+
 /* ─── Comet dot on button border (loading) ─── */
 /* A glowing dot rides the perimeter; staggered fainter dots trail it. */
 @keyframes pm-comet {
@@ -98,7 +130,6 @@ body {
   justify-content: center;
   width: 44px;
   height: 44px;
-  margin-left: -0.55rem;
   background: none;
   border: none;
   cursor: pointer;
@@ -233,4 +264,295 @@ body {
 ::selection {
   background: oklch(0.58 0.225 27 / 0.30);
   color: var(--pm-fg);
+}
+
+/* ─── Footer atmosphere ─── */
+/* Two warm-red glow fields drift slowly behind the footer, a faint engraved
+   grid sits on top, and a thin light sweep rides the top hairline. All purely
+   decorative; the global reduced-motion rule freezes them. */
+@keyframes pm-foot-drift-a {
+  0%   { transform: translate3d(0, 0, 0)        scale(1);    }
+  50%  { transform: translate3d(7%, -5%, 0)     scale(1.12); }
+  100% { transform: translate3d(0, 0, 0)        scale(1);    }
+}
+@keyframes pm-foot-drift-b {
+  0%   { transform: translate3d(0, 0, 0)        scale(1.05); }
+  50%  { transform: translate3d(-6%, 6%, 0)     scale(0.92); }
+  100% { transform: translate3d(0, 0, 0)        scale(1.05); }
+}
+@keyframes pm-foot-sweep {
+  0%   { transform: translateX(-100%); opacity: 0;   }
+  35%  { opacity: 1; }
+  65%  { opacity: 1; }
+  100% { transform: translateX(100%);  opacity: 0;   }
+}
+
+.pm-foot { position: relative; isolation: isolate; }
+
+/* glow fields */
+.pm-foot-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  will-change: transform;
+}
+.pm-foot-glow-a {
+  width: 38rem; height: 38rem;
+  inset-block-start: -14rem;
+  inset-inline-start: -10rem;
+  background: radial-gradient(circle, oklch(0.58 0.225 27 / 0.30), transparent 68%);
+  animation: pm-foot-drift-a 22s ease-in-out infinite;
+}
+.pm-foot-glow-b {
+  width: 30rem; height: 30rem;
+  inset-block-end: -12rem;
+  inset-inline-end: -8rem;
+  background: radial-gradient(circle, oklch(0.66 0.235 35 / 0.22), transparent 70%);
+  animation: pm-foot-drift-b 27s ease-in-out infinite;
+}
+
+/* engraved grid */
+.pm-foot-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right,  oklch(0.97 0.004 60 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.97 0.004 60 / 0.035) 1px, transparent 1px);
+  background-size: 3.25rem 3.25rem;
+  mask-image: radial-gradient(ellipse 120% 100% at 50% 0%, #000 35%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 120% 100% at 50% 0%, #000 35%, transparent 85%);
+}
+
+/* top hairline + travelling light */
+.pm-foot-sweep {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  height: 1px;
+  width: 40%;
+  background: linear-gradient(to right, transparent, var(--pm-accent-bright), transparent);
+  animation: pm-foot-sweep 6.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ghost wordmark */
+.pm-foot-ghost {
+  position: absolute;
+  inset-block-end: -1.5rem;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  /* Brand wordmark stays Latin (Anton) in every locale — pinned to a var the
+     .lang-fa font swap never overrides, so it never turns to Persian glyphs. */
+  font-family: var(--font-latin-display, var(--font-display));
+  font-weight: 400;
+  line-height: 1;
+  font-size: clamp(5rem, 22vw, 18rem);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1px oklch(0.97 0.004 60 / 0.05);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* store card */
+.pm-store { transition: border-color 250ms, background-color 250ms, transform 250ms; }
+.pm-store:hover {
+  border-color: var(--pm-accent);
+  background: var(--pm-surface-raised);
+  transform: translateY(-3px);
+}
+.pm-store:hover .pm-store-pin { color: var(--pm-accent-bright); transform: scale(1.1); }
+.pm-store-pin { color: var(--pm-accent); transition: transform 250ms, color 250ms; }
+
+/* phone link */
+.pm-foot-phone { color: var(--pm-fg); transition: color 200ms; }
+.pm-foot-phone:hover { color: var(--pm-accent-bright); }
+
+/* creator credit */
+.pm-foot-author { color: var(--pm-fg-muted); transition: color 200ms; }
+.pm-foot-author:hover { color: var(--pm-accent); }
+
+/* ─── 404 — "dead signal / corrupted archive entry" ─── */
+/* Concept: an unfiled mood whose frequency went dead. The giant code carries a
+   chromatic glitch (a faint always-on red/neon split that bursts periodically),
+   over drifting red glows, an engraved grid and CRT scanlines. All decorative
+   motion is frozen by the global reduced-motion rule; the rest state stays
+   legible (the code's rest frame is the calm faint split, not the burst). */
+
+/* staggered entrance */
+@keyframes pm-404-rise {
+  from { opacity: 0; transform: translateY(1.4rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* drifting glow fields */
+@keyframes pm-404-drift-a {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(6%, -6%, 0) scale(1.16); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes pm-404-drift-b {
+  0%   { transform: translate3d(0, 0, 0) scale(1.06); }
+  50%  { transform: translate3d(-7%, 5%, 0) scale(0.9); }
+  100% { transform: translate3d(0, 0, 0) scale(1.06); }
+}
+
+/* a bright line sweeps down the frame like a scanning head */
+@keyframes pm-404-scan {
+  0%   { transform: translateY(-12vh); opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { transform: translateY(112vh); opacity: 0; }
+}
+
+/* chromatic split — calm faint offset most of the cycle, brief slice bursts.
+   Rest frame (0%/100%) is the legible faint state so reduced-motion is fine. */
+@keyframes pm-404-glitch-a {
+  0%, 38%, 50%, 100% { transform: translate3d(-2px, 0, 0); clip-path: inset(0 0 0 0); }
+  40% { transform: translate3d(-9px, -2px, 0); clip-path: inset(12% 0 56% 0); }
+  43% { transform: translate3d(6px, 1px, 0);   clip-path: inset(58% 0 16% 0); }
+  46% { transform: translate3d(-5px, 0, 0);    clip-path: inset(38% 0 34% 0); }
+}
+@keyframes pm-404-glitch-b {
+  0%, 80%, 92%, 100% { transform: translate3d(2px, 0, 0); clip-path: inset(0 0 0 0); }
+  82% { transform: translate3d(9px, 2px, 0);   clip-path: inset(66% 0 10% 0); }
+  85% { transform: translate3d(-6px, -1px, 0); clip-path: inset(22% 0 48% 0); }
+  88% { transform: translate3d(4px, 0, 0);     clip-path: inset(46% 0 30% 0); }
+}
+
+/* very occasional flicker on the solid code */
+@keyframes pm-404-flicker {
+  0%, 41%, 44%, 83%, 86%, 100% { opacity: 1; }
+  42%, 84% { opacity: 0.82; }
+}
+
+.pm-404 { position: relative; isolation: isolate; min-height: 100dvh; overflow: hidden; }
+
+/* glow fields */
+.pm-404-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  will-change: transform;
+  z-index: 0;
+}
+.pm-404-glow-a {
+  width: 42rem; height: 42rem;
+  inset-block-start: -16rem;
+  inset-inline-start: -12rem;
+  background: radial-gradient(circle, oklch(0.58 0.225 27 / 0.32), transparent 68%);
+  animation: pm-404-drift-a 24s ease-in-out infinite;
+}
+.pm-404-glow-b {
+  width: 34rem; height: 34rem;
+  inset-block-end: -14rem;
+  inset-inline-end: -10rem;
+  background: radial-gradient(circle, oklch(0.66 0.235 35 / 0.20), transparent 70%);
+  animation: pm-404-drift-b 29s ease-in-out infinite;
+}
+
+/* engraved grid, masked toward centre */
+.pm-404-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right,  oklch(0.97 0.004 60 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.97 0.004 60 / 0.035) 1px, transparent 1px);
+  background-size: 3.25rem 3.25rem;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, #000 25%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, #000 25%, transparent 80%);
+}
+
+/* CRT scanlines */
+.pm-404-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    oklch(0 0 0 / 0) 0,
+    oklch(0 0 0 / 0) 2px,
+    oklch(0 0 0 / 0.16) 3px,
+    oklch(0 0 0 / 0) 4px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+}
+
+/* scanning head */
+.pm-404-scan {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  inset-block-start: 0;
+  height: 2px;
+  z-index: 2;
+  background: linear-gradient(to right, transparent, var(--pm-accent-bright), transparent);
+  box-shadow: 0 0 16px 2px oklch(0.66 0.235 35 / 0.6);
+  opacity: 0;
+  pointer-events: none;
+  animation: pm-404-scan 7.5s ease-in-out infinite;
+}
+
+/* corner registration marks */
+.pm-404-reg {
+  position: absolute;
+  z-index: 2;
+  width: 14px;
+  height: 14px;
+  color: var(--pm-fg-subtle);
+  pointer-events: none;
+  opacity: 0.5;
+}
+.pm-404-reg::before,
+.pm-404-reg::after {
+  content: '';
+  position: absolute;
+  background: currentColor;
+}
+.pm-404-reg::before { inset-block-start: 50%; inset-inline: 0; height: 1px; transform: translateY(-50%); }
+.pm-404-reg::after  { inset-inline-start: 50%; inset-block: 0; width: 1px; transform: translateX(-50%); }
+.pm-404-reg-tl { inset-block-start: 1.5rem; inset-inline-start: 1.5rem; }
+.pm-404-reg-tr { inset-block-start: 1.5rem; inset-inline-end: 1.5rem; }
+.pm-404-reg-bl { inset-block-end: 1.5rem; inset-inline-start: 1.5rem; }
+.pm-404-reg-br { inset-block-end: 1.5rem; inset-inline-end: 1.5rem; }
+
+/* the glitch code */
+.pm-404-code {
+  position: relative;
+  display: inline-block;
+  line-height: 0.8;
+  font-size: clamp(5rem, 24vw, 15rem);
+  letter-spacing: 0.01em;
+}
+.pm-404-code-main {
+  position: relative;
+  z-index: 1;
+  color: var(--pm-fg);
+  text-shadow: 0 0 60px oklch(0.58 0.225 27 / 0.25);
+  animation: pm-404-flicker 6.5s steps(1, end) infinite;
+}
+.pm-404-ghost {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  mix-blend-mode: screen;
+}
+.pm-404-ghost-a { color: var(--pm-accent-bright); animation: pm-404-glitch-a 4.6s linear infinite; }
+.pm-404-ghost-b { color: var(--pm-neon);          animation: pm-404-glitch-b 4.6s linear infinite; }
+
+/* top wordmark + back link */
+.pm-404-wordmark { color: var(--pm-fg-muted); transition: color 200ms; }
+.pm-404-wordmark:hover { color: var(--pm-accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pm-404-scan { display: none; }
 }

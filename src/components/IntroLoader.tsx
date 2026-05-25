@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { gsap } from '@/lib/gsap'
+import { useLocale } from '@/i18n/LocaleProvider'
 
 const SEEN_KEY = 'pm_intro_seen'
 
 export default function IntroLoader() {
+  const { t } = useLocale()
   // 'pending' renders the overlay on first paint (covers hero) until the
   // effect decides; 'done' unmounts it.
   const [phase, setPhase] = useState<'pending' | 'playing' | 'done'>('pending')
@@ -98,7 +100,7 @@ export default function IntroLoader() {
             color: 'var(--pm-accent)',
           }}
         >
-          <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;Mood archive &middot; Est. MMXXVI
+          <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;{t.intro.tag} &middot; {t.intro.estTag}
         </p>
       </div>
 

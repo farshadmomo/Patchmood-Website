@@ -1,25 +1,24 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import type { Product } from '@/types'
+import { createClient } from '@/lib/pocketbase/server'
+import { toProduct } from '@/lib/pocketbase/transform'
 import ProductTable from '@/components/admin/ProductTable'
 
 export default async function AdminProductsPage() {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('products')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const pb = await createClient()
+  const records = await pb.collection('products').getFullList({ sort: '-created' })
 
-  const products = (data ?? []) as Product[]
+  const products = records.map(toProduct)
 
   return (
-    <div style={{ padding: '3rem 2.5rem 4rem' }}>
+    <div className="px-4 pt-6 pb-12 md:px-10 md:pt-12 md:pb-16">
       {/* Page header */}
       <header
         style={{
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
           marginBottom: '2.5rem',
         }}
       >

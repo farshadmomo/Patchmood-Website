@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/pocketbase/server'
+import { toProduct } from '@/lib/pocketbase/transform'
+import { isAnyAdmin, pbErrorResponse } from '@/lib/pocketbase/api'
 
 export async function GET(
   _: Request,
@@ -7,19 +9,11 @@ export async function GET(
 ) {
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error || !data) {
-      return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
-    }
-    return NextResponse.json({ success: true, data })
+    const pb = await createClient()
+    const record = await pb.collection('products').getOne(id)
+    return NextResponse.json({ success: true, data: toProduct(record) })
   } catch {
-    return NextResponse.json({ success: false, error: 'Failed to fetch product' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
   }
 }
 
@@ -27,29 +21,20 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const pb = await createClient()
 
-  if (!user || user.app_metadata?.role !== 'admin') {
+  if (!isAnyAdmin(pb)) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   const { id } = await params
   try {
-    const body = await request.json()
-    const { data, error } = await supabase
-      .from('products')
-      .update(body)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error || !data) {
-      return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
-    }
-    return NextResponse.json({ success: true, data })
-  } catch {
-    return NextResponse.json({ success: false, error: 'Failed to update product' }, { status: 500 })
+    const formData = await request.formData()
+    const svc = pb.authStore.isSuperuser ? pb : await createServiceClient()
+    const record = await svc.collection('products').update(id, formData)
+    return NextResponse.json({ success: true, data: toProduct(record) })
+  } catch (err) {
+    return pbErrorResponse(err, 'Failed to update product', 'A product with this slug already exists')
   }
 }
 
@@ -57,21 +42,18 @@ export async function DELETE(
   _: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const pb = await createClient()
 
-  if (!user || user.app_metadata?.role !== 'admin') {
+  if (!isAnyAdmin(pb)) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   const { id } = await params
   try {
-    const { error } = await supabase.from('products').delete().eq('id', id)
-    if (error) {
-      return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
-    }
+    const svc = pb.authStore.isSuperuser ? pb : await createServiceClient()
+    await svc.collection('products').delete(id)
     return NextResponse.json({ success: true, data: null })
   } catch {
-    return NextResponse.json({ success: false, error: 'Failed to delete product' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
   }
 }

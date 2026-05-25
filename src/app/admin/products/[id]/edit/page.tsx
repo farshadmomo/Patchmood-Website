@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import type { Product } from '@/types'
+import { createClient } from '@/lib/pocketbase/server'
+import { toProduct } from '@/lib/pocketbase/transform'
 import ProductForm from '@/components/admin/ProductForm'
 
 export const metadata = {
@@ -15,15 +15,15 @@ export default async function EditProductPage({
 }) {
   const { id } = await params
 
-  const supabase = await createClient()
-  const { data } = await supabase.from('products').select('*').eq('id', id).single()
+  const pb = await createClient()
+  const record = await pb.collection('products').getOne(id).catch(() => null)
 
-  if (!data) notFound()
+  if (!record) notFound()
 
-  const product = data as Product
+  const product = toProduct(record)
 
   return (
-    <div style={{ padding: '3rem 2.5rem 4rem', maxWidth: '64rem' }}>
+    <div className="px-4 pt-6 pb-12 md:px-10 md:pt-12 md:pb-16" style={{ maxWidth: '64rem' }}>
       {/* Page header */}
       <header style={{ marginBottom: '2.5rem' }}>
         <nav style={{ marginBottom: '0.75rem' }}>

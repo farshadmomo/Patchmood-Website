@@ -1,0 +1,225 @@
+{
+  "generatedAt": "2026-05-25T19:57:48.889Z",
+  "products": [
+    {
+      "id": "yj2zkc3oq34cd0k",
+      "name": "Curve Lamp",
+      "slug": "curve-lamp",
+      "description": "A curved lamp with red blue green and everything between",
+      "short_description": "curved RGB Lamp",
+      "images": [
+        "/catalog/products/yj2zkc3oq34cd0k/7d12187a_55bc_4e2f_929b_74a28820cbd5_1_4_3uowopm4rz.png"
+      ],
+      "category": "Lamps",
+      "tags": [
+        "rgb, lamp, curve"
+      ],
+      "featured": false,
+      "created_at": "2026-05-24 21:53:59.867Z",
+      "updated_at": "2026-05-24 21:53:59.867Z"
+    },
+    {
+      "id": "525a9stxb1fyybs",
+      "name": "Worry Chain",
+      "slug": "worry-chain",
+      "description": "A short loop of stainless links with a single weighted tag, sized for the pocket and the nervous hand. Runs cold, then warm, then cold again. Holds keys it does not care about.",
+      "short_description": "For the nervous hand.",
+      "images": [
+        "/catalog/products/525a9stxb1fyybs/0b5e59bf_f23c_463f_9da7_616d6a98753e_1_4_qhfs70zpiy.png"
+      ],
+      "category": "Accessories",
+      "tags": [
+        "steel",
+        "pocket",
+        "fidget"
+      ],
+      "featured": false,
+      "created_at": "2026-05-24 09:13:56.746Z",
+      "updated_at": "2026-05-24 21:48:18.294Z"
+    },
+    {
+      "id": "wzwjvo2uylxxaln",
+      "name": "Evidence, Bagged",
+      "slug": "evidence-bagged",
+      "description": "A resin prop cast from something that was never explained — sealed, tagged, lit from one side. Looks like the third act of a film you walked out of. Display only. Asks more than it answers.",
+      "short_description": "The reason you stayed for the credits.",
+      "images": [
+        "/catalog/products/wzwjvo2uylxxaln/bb4451cd_5d0f_4d37_9ccd_66572c193a324_amx11wdph3.png"
+      ],
+      "category": "Props",
+      "tags": [
+        "resin",
+        "cinematic",
+        "display"
+      ],
+      "featured": false,
+      "created_at": "2026-05-24 09:13:56.745Z",
+      "updated_at": "2026-05-24 21:48:45.520Z"
+    },
+    {
+      "id": "mi81w2c3vw6c3s7",
+      "name": "Patron Saint of Doubt",
+      "slug": "patron-saint-of-doubt",
+      "description": "A 1/6 articulated figure mid-shrug — twenty points of articulation devoted entirely to ambivalence. Comes posed in the act of almost deciding. Stand included; certainty not.",
+      "short_description": "Posed mid-shrug, forever.",
+      "images": [
+        "/catalog/products/mi81w2c3vw6c3s7/29e992e7_0469_45eb_aabd_505612a238321_4wayaz22uq.png"
+      ],
+      "category": "Action figures",
+      "tags": [
+        "articulated",
+        "collectible",
+        "1/6"
+      ],
+      "featured": false,
+      "created_at": "2026-05-24 09:13:56.744Z",
+      "updated_at": "2026-05-24 21:48:56.881Z"
+    },
+    {
+      "id": "evmeh08ihy4he7h",
+      "name": "Second Skin",
+      "slug": "second-skin",
+      "description": "A 280gsm boxy tee that has already lived three lives before it reaches you — garment-dyed to the grey of wet concrete, seams built to outlast the mood. Wear it until it is yours.",
+      "short_description": "Concrete grey, built to outlast you.",
+      "images": [
+        "/catalog/products/evmeh08ihy4he7h/78605507_0473_486e_8af9_742fcb527e751_fwfzjhmkj8.png"
+      ],
+      "category": "Clothes",
+      "tags": [
+        "heavyweight",
+        "boxy",
+        "garment-dyed"
+      ],
+      "featured": false,
+      "created_at": "2026-05-24 09:13:56.743Z",
+      "updated_at": "2026-05-24 21:49:09.979Z"
+    },
+    {
+      "id": "zjx4jk6oi3fkgb1",
+      "name": "Dead Man's Click",
+      "slug": "dead-mans-click",
+      "description": "Brushed-steel flip lighter, weighted to land in the palm like a decision already made. Strikes clean, snaps shut louder than it should. Refillable. Engraved blank, on purpose.",
+      "short_description": "Heavier than it looks.",
+      "images": [
+        "/catalog/products/zjx4jk6oi3fkgb1/8edc63e1_0770_4d52_be33_3f60d2962353_iwhdukbq0d.png"
+      ],
+      "category": "Lighters",
+      "tags": [
+        "steel",
+        "weighted",
+        "flip"
+      ],
+      "featured": false,
+      "created_at": "2026-05-24 09:13:56.742Z",
+      "updated_at": "2026-05-24 21:49:23.921Z"
+    },
+    {
+      "id": "k6rhgyqc9yw6vop",
+      "name": "Low Sodium",
+      "slug": "low-sodium",
+      "description": "A sodium-vapour desk lamp that throws the exact amber of an empty motorway at 4am. Cast metal base, dimmable, warms a room into a memory you are not sure you have.",
+      "short_description": "Motorway amber for one room.",
+      "images": [
+        "/catalog/products/k6rhgyqc9yw6vop/7d12187a_55bc_4e2f_929b_74a28820cbd5_1_2_y1ynyk8f33.png"
+      ],
+      "category": "Lamps",
+      "tags": [
+        "amber",
+        "nocturnal",
+        "glow"
+      ],
+      "featured": false,
+      "created_at": "2026-05-24 09:13:56.741Z",
+      "updated_at": "2026-05-24 21:49:33.352Z"
+    },
+    {
+      "id": "pwvdkoy4ke3yd3g",
+      "name": "Exit Music",
+      "slug": "exit-music",
+      "description": "Black ink, single hit, a lot of paper left empty. The poster equivalent of the last song before the lights come up. Quiet, deliberate, hangs heavy.",
+      "short_description": "The last song, on paper.",
+      "images": [
+        "/catalog/products/pwvdkoy4ke3yd3g/f0c4151b_b3c9_4dd5_b10a_1cb28a887b203_kxafxc1xvs.png"
+      ],
+      "category": "Posters",
+      "tags": [
+        "minimal",
+        "monochrome",
+        "quiet"
+      ],
+      "featured": false,
+      "created_at": "2026-05-24 09:13:56.739Z",
+      "updated_at": "2026-05-24 21:49:42.878Z"
+    },
+    {
+      "id": "gryp97cmpp3agqm",
+      "name": "Static Bloom",
+      "slug": "static-bloom",
+      "description": "A four-colour riso print bled to the edge — magenta detonating into cyan with no apology. Pull it from the tube, pin it raw, let the misregistration do the talking. 50x70cm on uncoated stock.",
+      "short_description": "Noise you can frame.",
+      "images": [
+        "/catalog/products/gryp97cmpp3agqm/f0c4151b_b3c9_4dd5_b10a_1cb28a887b2034_4pecll2xzz.png"
+      ],
+      "category": "Posters",
+      "tags": [
+        "riso",
+        "loud",
+        "print"
+      ],
+      "featured": true,
+      "created_at": "2026-05-24 09:13:56.737Z",
+      "updated_at": "2026-05-24 21:49:51.681Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": "nn8psnagx2ryb7w",
+      "name": "Accessories",
+      "slug": "accessories",
+      "image_url": "/catalog/categories/nn8psnagx2ryb7w/e0b432f2_caed_4df6_805e_05a0ad739f8e_1zqag3m7qr.png",
+      "created_at": "2026-05-24 09:13:56.724Z"
+    },
+    {
+      "id": "lui2sx1y6fc1mtk",
+      "name": "Action figures",
+      "slug": "action-figures",
+      "image_url": "/catalog/categories/lui2sx1y6fc1mtk/0142f570_eeba_4dcc_b50a_25fd3f0ac311_s9l10chuac.png",
+      "created_at": "2026-05-24 09:13:56.726Z"
+    },
+    {
+      "id": "mifvebfs08d9tgy",
+      "name": "Clothes",
+      "slug": "clothes",
+      "image_url": "/catalog/categories/mifvebfs08d9tgy/041b0ab2_4bc7_4743_8f71_5f14b86e0837_wj89rwmql7.png",
+      "created_at": "2026-05-24 09:13:56.728Z"
+    },
+    {
+      "id": "q144ox7kzdatyey",
+      "name": "Lamps",
+      "slug": "lamps",
+      "image_url": "/catalog/categories/q144ox7kzdatyey/1b8cb34b_8118_4821_8c33_56cd0c657af0_1_iskhz0x299.png",
+      "created_at": "2026-05-24 09:13:56.729Z"
+    },
+    {
+      "id": "t260ygvfycx6397",
+      "name": "Lighters",
+      "slug": "lighters",
+      "image_url": "/catalog/categories/t260ygvfycx6397/2e88e843_9b8c_4adc_aa29_7c0b6041b6ff_msz68rv9e1.png",
+      "created_at": "2026-05-24 09:13:56.731Z"
+    },
+    {
+      "id": "exvffp6zu8wh1on",
+      "name": "Posters",
+      "slug": "posters",
+      "image_url": "/catalog/categories/exvffp6zu8wh1on/a9a72962_a449_4aaf_8c13_80fd003b138b_e395s1mtc3.png",
+      "created_at": "2026-05-24 09:13:56.733Z"
+    },
+    {
+      "id": "rhfyk1txa5lr9ho",
+      "name": "Props",
+      "slug": "props",
+      "image_url": "/catalog/categories/rhfyk1txa5lr9ho/9fea3a18_02a1_4fcb_986e_3c46f7165392_zj6jml7pp3.png",
+      "created_at": "2026-05-24 09:13:56.734Z"
+    }
+  ]
+}

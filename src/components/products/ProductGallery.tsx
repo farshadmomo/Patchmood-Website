@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale } from '@/i18n/LocaleProvider'
 
 interface ProductGalleryProps {
   images: string[]
@@ -31,6 +32,7 @@ function CropMark({ corner }: { corner: 'tl' | 'tr' | 'bl' | 'br' }) {
 }
 
 export default function ProductGallery({ images, name, specimen }: ProductGalleryProps) {
+  const { t } = useLocale()
   const [active, setActive] = useState(0)
   const hasImages = images.length > 0
   const current = hasImages ? images[active] : null
@@ -111,14 +113,14 @@ export default function ProductGallery({ images, name, specimen }: ProductGaller
               color: 'var(--pm-fg-subtle)',
             }}
           >
-            No specimen image on file
+            {t.gallery.noImage}
           </span>
         )}
       </div>
 
       {/* Thumbnail rail — only when multiple images */}
       {images.length > 1 && (
-        <div className="flex gap-2 mt-2" role="tablist" aria-label={`${name} images`}>
+        <div className="flex gap-2 mt-2" role="tablist" aria-label={t.gallery.imagesOf(name)}>
           {images.map((src, i) => {
             const on = i === active
             return (
@@ -126,7 +128,7 @@ export default function ProductGallery({ images, name, specimen }: ProductGaller
                 key={src}
                 role="tab"
                 aria-selected={on}
-                aria-label={`View image ${i + 1} of ${images.length}`}
+                aria-label={t.gallery.viewN(i + 1, images.length)}
                 onClick={() => setActive(i)}
                 className="relative flex-shrink-0 overflow-hidden cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2"
                 style={{

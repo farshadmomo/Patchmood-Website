@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { gsap } from '@/lib/gsap'
 import type { Product } from '@/types'
+import { useLocale } from '@/i18n/LocaleProvider'
 
 interface SearchOverlayProps {
   open: boolean
@@ -12,6 +13,7 @@ interface SearchOverlayProps {
 
 export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
   const router = useRouter()
+  const { t } = useLocale()
   const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -102,7 +104,7 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
       ref={rootRef}
       role="dialog"
       aria-modal="true"
-      aria-label="Search the archive"
+      aria-label={t.search.label}
       className="fixed inset-0 z-[120] flex flex-col"
       style={{
         background: 'oklch(0.10 0.005 40 / 0.92)',
@@ -127,11 +129,11 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
               color: 'var(--pm-accent)',
             }}
           >
-            <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;Search the archive
+            <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;{t.search.label}
           </p>
           <button
             onClick={onClose}
-            aria-label="Close search"
+            aria-label={t.search.close}
             className="flex items-center gap-2 cursor-pointer"
             style={{
               fontFamily: 'var(--font-mono)',
@@ -165,8 +167,8 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a mood, name, tag…"
-            aria-label="Search products"
+            placeholder={t.search.placeholder}
+            aria-label={t.search.ariaProducts}
             className="w-full bg-transparent outline-none pm-display text-white"
             style={{
               fontSize: 'clamp(1.75rem, 5vw, 3rem)',
@@ -179,22 +181,22 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
         {/* Results */}
         <div className="mt-6 flex-1 min-h-0 overflow-y-auto pb-10">
           {loading && products === null ? (
-            <p style={metaText}>Loading archive…</p>
+            <p style={metaText}>{t.search.loading}</p>
           ) : results.length === 0 ? (
             <p style={metaText}>
-              {debounced ? `No moods match “${query.trim()}”` : 'No products in the archive yet'}
+              {debounced ? t.search.noMatch(query.trim()) : t.search.empty}
             </p>
           ) : (
             <>
               <p style={{ ...metaText, marginBottom: '0.75rem' }}>
-                {results.length} {results.length === 1 ? 'result' : 'results'}
+                {t.search.results(results.length)}
               </p>
               <ul className="flex flex-col">
                 {results.map((p) => (
                   <li key={p.id}>
                     <button
                       onClick={() => goTo(p.slug)}
-                      className="group w-full flex items-center gap-4 text-left cursor-pointer"
+                      className="group w-full flex items-center gap-4 text-start cursor-pointer"
                       style={{
                         padding: '0.75rem 0.5rem',
                         borderBottom: '1px solid var(--pm-border)',
@@ -220,7 +222,7 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                         )}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block pm-display text-white truncate" style={{ fontSize: '1.125rem' }}>
+                        <span dir="auto" className="block pm-display text-white truncate" style={{ fontSize: '1.125rem' }}>
                           {p.name}
                         </span>
                         <span
@@ -237,17 +239,19 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                           {p.category}
                         </span>
                       </span>
-                      <svg
-                        width="15"
-                        height="15"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                        aria-hidden="true"
-                        className="flex-shrink-0 transition-transform duration-300 group-hover:translate-x-1"
-                        style={{ color: 'var(--pm-accent)' }}
-                      >
-                        <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                      <span className="pm-flip-rtl inline-flex flex-shrink-0">
+                        <svg
+                          width="15"
+                          height="15"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          aria-hidden="true"
+                          className="transition-transform duration-300 group-hover:translate-x-1"
+                          style={{ color: 'var(--pm-accent)' }}
+                        >
+                          <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
                     </button>
                   </li>
                 ))}

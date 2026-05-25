@@ -5,6 +5,7 @@ import Image from 'next/image'
 import type { Product, Category } from '@/types'
 import ProductCard from './ProductCard'
 import ProgressLink from '@/components/transition/ProgressLink'
+import { useLocale } from '@/i18n/LocaleProvider'
 
 interface ProductCatalogProps {
   products: Product[]
@@ -12,6 +13,7 @@ interface ProductCatalogProps {
 }
 
 export default function ProductCatalog({ products, categories }: ProductCatalogProps) {
+  const { t } = useLocale()
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [showSticky, setShowSticky] = useState(false)
   const railRef = useRef<HTMLDivElement>(null)
@@ -46,18 +48,25 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
       if (el.scrollWidth <= el.clientWidth) return // nothing to scroll
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return // leave native horizontal scroll alone
       const dir = e.deltaY > 0 ? 1 : -1
-      const atStart = el.scrollLeft <= 0
-      const atEnd = Math.ceil(el.scrollLeft + el.clientWidth) >= el.scrollWidth
+      // RTL flips scrollLeft (0 at the start, negative toward the end), so
+      // normalise to a positive 0→max position for edge checks and negate the
+      // scroll delta below.
+      const rtl = getComputedStyle(el).direction === 'rtl'
+      const maxScroll = el.scrollWidth - el.clientWidth
+      const pos = rtl ? -el.scrollLeft : el.scrollLeft
+      const atStart = pos <= 0
+      const atEnd = Math.ceil(pos) >= maxScroll
       if ((dir < 0 && atStart) || (dir > 0 && atEnd)) return // at an edge: let the page scroll
       e.preventDefault()
       const kids = el.children
       const stride =
         kids.length >= 2
-          ? kids[1].getBoundingClientRect().left - kids[0].getBoundingClientRect().left
+          ? Math.abs(kids[1].getBoundingClientRect().left - kids[0].getBoundingClientRect().left)
           : kids.length === 1
             ? kids[0].getBoundingClientRect().width
             : el.clientWidth * 0.8
-      el.scrollBy({ left: dir * stride, behavior: 'smooth' })
+      const delta = dir * stride
+      el.scrollBy({ left: rtl ? -delta : delta, behavior: 'smooth' })
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
@@ -71,11 +80,15 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
       if (el.scrollWidth <= el.clientWidth) return
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
       const dir = e.deltaY > 0 ? 1 : -1
-      const atStart = el.scrollLeft <= 0
-      const atEnd = Math.ceil(el.scrollLeft + el.clientWidth) >= el.scrollWidth
+      const rtl = getComputedStyle(el).direction === 'rtl'
+      const maxScroll = el.scrollWidth - el.clientWidth
+      const pos = rtl ? -el.scrollLeft : el.scrollLeft
+      const atStart = pos <= 0
+      const atEnd = Math.ceil(pos) >= maxScroll
       if ((dir < 0 && atStart) || (dir > 0 && atEnd)) return
       e.preventDefault()
-      el.scrollBy({ left: dir * 120, behavior: 'smooth' })
+      const delta = dir * 120
+      el.scrollBy({ left: rtl ? -delta : delta, behavior: 'smooth' })
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
@@ -107,21 +120,20 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
               color: 'var(--pm-fg-subtle)',
             }}
           >
-            <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;The collection
+            <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;{t.collection.eyebrow}
           </p>
           <h2
             className="pm-display text-white"
             style={{ fontSize: 'clamp(2.75rem, 7vw, 6rem)' }}
           >
-            Mood <span style={{ color: 'var(--pm-accent)' }}>archive</span>
+            {t.collection.titleLead} <span style={{ color: 'var(--pm-accent)' }}>{t.collection.titleAccent}</span>
           </h2>
         </div>
         <p
-          className="md:text-right md:max-w-xs leading-relaxed pb-1"
+          className="md:text-end md:max-w-xs leading-relaxed pb-1"
           style={{ fontSize: '0.8125rem', color: 'var(--pm-fg-muted)', lineHeight: 1.7 }}
         >
-          Catalogued and lit like gallery pieces. Each engineered
-          to amplify what is already there.
+          {t.collection.intro}
         </p>
       </div>
 
@@ -146,13 +158,13 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
               className="hidden sm:inline flex-shrink-0"
               style={{ fontFamily: 'var(--font-mono)', fontSize: '0.5625rem', textTransform: 'uppercase', letterSpacing: '0.28em', color: 'var(--pm-fg-subtle)' }}
             >
-              Filter
+              {t.collection.filter}
             </span>
             <div
               ref={stickyChipsRef}
               className="pm-rail-scroll flex-1 min-w-0 flex items-center gap-2 overflow-x-auto"
             >
-              <FilterChip label="All" active={activeCategory === null} onClick={() => setActiveCategory(null)} />
+              <FilterChip label={t.collection.all} active={activeCategory === null} onClick={() => setActiveCategory(null)} />
               {categories.map((cat) => (
                 <FilterChip key={cat.id} label={cat.name} active={activeCategory === cat.name} onClick={() => setActiveCategory(cat.name)} />
               ))}
@@ -190,10 +202,15 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
               onMouseLeave={(e) => { if (activeCategory !== null) e.currentTarget.style.borderColor = 'var(--pm-border)' }}
             >
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', letterSpacing: '0.2em', color: activeCategory === null ? 'oklch(0.18 0.02 30)' : 'var(--pm-fg-subtle)' }}>
-                ✳ &nbsp;{products.length} pieces
+                ✳ &nbsp;{t.collection.pieces(products.length)}
               </span>
               <span className="pm-display" style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', lineHeight: 0.9, color: activeCategory === null ? 'oklch(0.16 0.02 30)' : 'var(--pm-fg)' }}>
-                The<br />whole<br />archive
+                {t.collection.wholeArchive.split(' ').map((word, i, arr) => (
+                  <span key={i}>
+                    {word}
+                    {i < arr.length - 1 && <br />}
+                  </span>
+                ))}
               </span>
             </button>
 
@@ -256,7 +273,7 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
                   {/* Top meta row */}
                   <span className="absolute top-3 left-3 right-3 flex items-center justify-between" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', letterSpacing: '0.18em' }}>
                     <span style={{ color: active ? 'var(--pm-accent-bright)' : 'oklch(0.85 0.004 60 / 0.7)' }}>{idx}</span>
-                    <span style={{ color: 'oklch(0.85 0.004 60 / 0.7)' }}>{countFor(cat.name)} pcs</span>
+                    <span style={{ color: 'oklch(0.85 0.004 60 / 0.7)' }}>{t.collection.pcs(countFor(cat.name))}</span>
                   </span>
 
                   {/* Name + reveal arrow */}
@@ -272,7 +289,7 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
                         opacity: active ? 1 : 0,
                       }}
                     >
-                      Viewing
+                      {t.collection.viewing}
                       <span style={{ width: 16, height: 1, background: 'var(--pm-accent)', display: 'inline-block' }} />
                     </span>
                   </span>
@@ -287,7 +304,7 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
         <div className="px-5 md:px-10 max-w-[88rem] mx-auto mb-24">
           <div style={{ padding: '4rem', textAlign: 'center', border: '1px dashed oklch(0.22 0.010 265)' }}>
             <p style={{ fontFamily: 'var(--font-display)', textTransform: 'uppercase', fontSize: '1.5rem', color: 'var(--pm-fg-subtle)' }}>
-              Nothing here yet
+              {t.collection.empty}
             </p>
           </div>
         </div>
@@ -298,7 +315,7 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
             <div className="px-5 md:px-10 max-w-[88rem] mx-auto mb-3">
               <ProgressLink
                 href={`/products/${featuredProduct.slug}`}
-                aria-label={`View ${featuredProduct.name}, featured`}
+                aria-label={t.card.viewFeatured(featuredProduct.name)}
                 className="group relative block w-full overflow-hidden cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2"
                 style={{
                   minHeight: '440px',
@@ -309,9 +326,10 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--pm-accent-dim)')}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--pm-border)')}
               >
-                {/* Left — image swatch */}
+                {/* Leading — image swatch */}
                 <div
-                  className="absolute inset-y-0 left-0 w-1/2 md:w-5/12 overflow-hidden"
+                  className="absolute inset-y-0 w-1/2 md:w-5/12 overflow-hidden"
+                  style={{ insetInlineStart: 0 }}
                   aria-hidden="true"
                 >
                   {featuredProduct.images[0] ? (
@@ -328,10 +346,10 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
                   )}
                 </div>
 
-                {/* Right — content */}
+                {/* Trailing — content */}
                 <div
-                  className="relative z-10 ml-auto w-1/2 md:w-7/12 h-full flex flex-col justify-center px-7 md:px-14 py-12"
-                  style={{ minHeight: '440px', background: 'var(--pm-surface)' }}
+                  className="relative z-10 w-1/2 md:w-7/12 h-full flex flex-col justify-center px-7 md:px-14 py-12"
+                  style={{ minHeight: '440px', background: 'var(--pm-surface)', marginInlineStart: 'auto' }}
                 >
                   <div className="flex items-center justify-between mb-5">
                     <div
@@ -345,18 +363,19 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
                       }}
                     >
                       <span className="inline-block w-7 h-px" style={{ background: 'var(--pm-accent)' }} aria-hidden="true" />
-                      Featured &middot; {featuredProduct.category}
+                      {t.collection.featured} &middot; {featuredProduct.category}
                     </div>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--pm-fg-subtle)' }}>
                       00
                     </span>
                   </div>
 
-                  <h3 className="pm-display text-white mb-4" style={{ fontSize: 'clamp(2.25rem, 4.5vw, 3.75rem)' }}>
+                  <h3 dir="auto" className="pm-display text-white mb-4" style={{ fontSize: 'clamp(2.25rem, 4.5vw, 3.75rem)' }}>
                     {featuredProduct.name}
                   </h3>
 
                   <p
+                    dir="auto"
                     className="mb-8 max-w-sm"
                     style={{ fontSize: '0.875rem', color: 'var(--pm-fg-muted)', lineHeight: 1.75 }}
                   >
@@ -372,8 +391,8 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
                       color: 'var(--pm-accent)',
                     }}
                   >
-                    Explore piece
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    {t.collection.explorePiece}
+                    <svg className="pm-flip-rtl" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                       <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </span>

@@ -2,6 +2,7 @@
 
 import type { Product } from '@/types'
 import ProgressLink from '@/components/transition/ProgressLink'
+import { useLocale } from '@/i18n/LocaleProvider'
 
 interface ProductCardProps {
   product: Product
@@ -10,12 +11,13 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, index, size = 'default' }: ProductCardProps) {
+  const { t } = useLocale()
   const idx = String(index).padStart(2, '0')
 
   return (
     <ProgressLink
       href={`/products/${product.slug}`}
-      aria-label={`View ${product.name}`}
+      aria-label={t.card.view(product.name)}
       className="group relative w-full overflow-hidden cursor-pointer text-left flex flex-col focus-visible:outline-2 focus-visible:outline-offset-2"
       style={{
         border: '1px solid var(--pm-border)',
@@ -51,8 +53,9 @@ export default function ProductCard({ product, index, size = 'default' }: Produc
 
         {/* Index number */}
         <span
-          className="absolute top-3 right-3"
+          className="absolute top-3"
           style={{
+            insetInlineEnd: '0.75rem',
             fontFamily: 'var(--font-mono)',
             fontSize: '0.6875rem',
             color: 'oklch(0.97 0.004 60 / 0.65)',
@@ -64,8 +67,9 @@ export default function ProductCard({ product, index, size = 'default' }: Produc
 
         {/* Category pill */}
         <span
-          className="absolute top-3 left-3"
+          className="absolute top-3"
           style={{
+            insetInlineStart: '0.75rem',
             fontFamily: 'var(--font-mono)',
             fontSize: '0.5625rem',
             textTransform: 'uppercase',
@@ -92,6 +96,7 @@ export default function ProductCard({ product, index, size = 'default' }: Produc
       >
         <div className="min-w-0">
           <p
+            dir="auto"
             className="pm-display text-white truncate"
             style={{ fontSize: '1.0625rem', letterSpacing: '0.01em' }}
           >
@@ -109,8 +114,24 @@ export default function ProductCard({ product, index, size = 'default' }: Produc
           >
             {product.category}
           </p>
+          {product.tags?.length > 0 && (
+            <p
+              dir="auto"
+              className="truncate"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.5625rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.16em',
+                color: 'var(--pm-accent-dim)',
+                marginTop: '0.3rem',
+              }}
+            >
+              {product.tags.join('  ·  ')}
+            </p>
+          )}
         </div>
-        <span className="flex items-center justify-center w-7 h-7 flex-shrink-0">
+        <span className="pm-flip-rtl flex items-center justify-center w-7 h-7 flex-shrink-0">
           <svg
             width="14"
             height="14"

@@ -1,34 +1,29 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import Sidebar from '@/components/admin/Sidebar'
+import { createClient } from '@/lib/pocketbase/server'
+import AdminShell from './AdminShell'
 
 export const metadata = {
   title: 'Admin — PatchMood',
 }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const pb = await createClient()
 
-  if (!user || user.app_metadata?.role !== 'admin') {
-    redirect('/login')
+  const isAnyAdmin =
+    pb.authStore.isValid &&
+    (pb.authStore.isSuperuser || pb.authStore.record?.collectionName === 'admins')
+
+  if (!isAnyAdmin) {
+    redirect(pb.authStore.isValid ? '/' : '/login')
   }
 
-  const displayName = (user.user_metadata?.full_name as string | undefined) ?? user.email?.split('@')[0]
+  const isMaster = pb.authStore.isSuperuser
+  const email = pb.authStore.record?.email as string | undefined
+  const displayName = email?.split('@')[0]
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--pm-bg)' }}>
-      <Sidebar userName={displayName} userEmail={user.email} />
-      <main
-        style={{
-          flex: 1,
-          marginLeft: '14rem',
-          minHeight: '100vh',
-          overflowY: 'auto',
-        }}
-      >
-        {children}
-      </main>
-    </div>
+    <AdminShell userName={displayName} userEmail={email} isMaster={isMaster}>
+      {children}
+    </AdminShell>
   )
 }

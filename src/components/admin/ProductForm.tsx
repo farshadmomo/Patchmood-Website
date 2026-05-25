@@ -3,7 +3,13 @@
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Product, Category } from "@/types";
+import { fileNameFromUrl } from "@/lib/pocketbase/transform";
 import Toast, { type ToastData } from "./Toast";
+
+interface StagedImage {
+  file: File;
+  preview: string;
+}
 
 interface ProductFormProps {
   product?: Product;
@@ -54,14 +60,14 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
   const [category, setCategory] = useState(product?.category ?? "");
   const [tags, setTags] = useState<string[]>(product?.tags ?? []);
   const [featured, setFeatured] = useState(product?.featured ?? false);
-  const [images, setImages] = useState<string[]>(product?.images ?? []);
+  // Existing images are full PocketBase file URLs; new ones are staged File objects.
+  const [existingImages, setExistingImages] = useState<string[]>(product?.images ?? []);
+  const [newImages, setNewImages] = useState<StagedImage[]>([]);
 
   const [categories, setCategories] = useState<Category[]>([])
   const [categoriesLoading, setCategoriesLoading] = useState(true)
 
   const [tagInput, setTagInput] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
 
@@ -70,6 +76,13 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
       .then((r) => r.json())
       .then((j) => { if (j.success) setCategories(j.data) })
       .finally(() => setCategoriesLoading(false))
+  }, [])
+
+  // Release object URLs for staged previews when the form unmounts.
+  const newImagesRef = useRef(newImages);
+  newImagesRef.current = newImages;
+  useEffect(() => {
+    return () => { newImagesRef.current.forEach((img) => URL.revokeObjectURL(img.preview)) }
   }, [])
 
   function handleNameChange(value: string) {
@@ -87,54 +100,47 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
     setTags((prev) => prev.filter((x) => x !== t));
   }
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const json = await res.json();
-      if (json.success) {
-        setImages((prev) => [...prev, json.data.url]);
-      } else {
-        setToast({ type: "error", message: json.error ?? "Upload failed" });
-      }
-    } catch {
-      setToast({ type: "error", message: "Upload failed" });
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const staged = Array.from(files).map((file) => ({ file, preview: URL.createObjectURL(file) }));
+    setNewImages((prev) => [...prev, ...staged]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function addImageUrl() {
-    const url = imageUrl.trim();
-    if (url && !images.includes(url)) {
-      setImages((prev) => [...prev, url]);
-      setImageUrl("");
-    }
+  function removeExistingImage(url: string) {
+    setExistingImages((prev) => prev.filter((u) => u !== url));
   }
 
-  function removeImage(url: string) {
-    setImages((prev) => prev.filter((u) => u !== url));
+  function removeNewImage(preview: string) {
+    setNewImages((prev) => {
+      const target = prev.find((img) => img.preview === preview);
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter((img) => img.preview !== preview);
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
-    const payload = { name, slug, description, short_description: shortDescription, category, tags, featured, images };
+    const fd = new FormData();
+    fd.set("name", name);
+    fd.set("slug", slug);
+    fd.set("description", description);
+    fd.set("short_description", shortDescription);
+    fd.set("category", category);
+    fd.set("featured", String(featured));
+    fd.set("tags", JSON.stringify(tags));
+    // Re-send kept existing files by filename, then append the new uploads.
+    for (const url of existingImages) fd.append("images", fileNameFromUrl(url));
+    for (const { file } of newImages) fd.append("images", file);
+
     const url = mode === "create" ? "/api/products" : `/api/products/${product?.id}`;
     const method = mode === "create" ? "POST" : "PUT";
 
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(url, { method, body: fd });
       const json = await res.json();
       if (json.success) {
         setToast({ type: "success", message: mode === "create" ? "Product created" : "Changes saved" });
@@ -155,12 +161,8 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
     <>
       <form onSubmit={handleSubmit}>
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 20rem",
-            gap: "2rem",
-            alignItems: "start",
-          }}
+          className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-8"
+          style={{ alignItems: "start" }}
         >
           {/* Left column — main fields */}
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -410,7 +412,7 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
             <div>
               <label style={LABEL}>Images</label>
 
-              {images.length > 0 && (
+              {(existingImages.length > 0 || newImages.length > 0) && (
                 <div
                   style={{
                     display: "grid",
@@ -419,42 +421,11 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
                     marginBottom: "0.75rem",
                   }}
                 >
-                  {images.map((url, i) => (
-                    <div
-                      key={url}
-                      style={{ position: "relative", aspectRatio: "1", borderRadius: "0.375rem", overflow: "hidden", background: "oklch(0.14 0.010 265)" }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt={`Product image ${i + 1}`}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(url)}
-                        aria-label="Remove image"
-                        style={{
-                          position: "absolute",
-                          top: "0.25rem",
-                          right: "0.25rem",
-                          background: "oklch(0.08 0.008 270 / 0.7)",
-                          border: "none",
-                          borderRadius: "50%",
-                          width: "1.25rem",
-                          height: "1.25rem",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                          color: "oklch(0.80 0.005 70)",
-                        }}
-                      >
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                          <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                      </button>
-                    </div>
+                  {existingImages.map((url, i) => (
+                    <ImageThumb key={url} src={url} alt={`Product image ${i + 1}`} onRemove={() => removeExistingImage(url)} />
+                  ))}
+                  {newImages.map((img) => (
+                    <ImageThumb key={img.preview} src={img.preview} alt="New image" onRemove={() => removeNewImage(img.preview)} />
                   ))}
                 </div>
               )}
@@ -464,6 +435,7 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/jpg,image/png,image/webp,image/avif"
+                multiple
                 onChange={handleFileChange}
                 style={{ display: "none" }}
                 id="pm-file-upload"
@@ -471,7 +443,6 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -484,16 +455,12 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
                   borderRadius: "0.375rem",
                   fontSize: "0.8125rem",
                   color: "var(--pm-fg-subtle)",
-                  cursor: uploading ? "not-allowed" : "pointer",
-                  marginBottom: "0.5rem",
+                  cursor: "pointer",
                   transition: "border-color 150ms, color 150ms",
-                  opacity: uploading ? 0.6 : 1,
                 }}
                 onMouseEnter={(e) => {
-                  if (!uploading) {
-                    e.currentTarget.style.borderColor = "oklch(0.40 0.012 265)";
-                    e.currentTarget.style.color = "var(--pm-fg-muted)";
-                  }
+                  e.currentTarget.style.borderColor = "oklch(0.40 0.012 265)";
+                  e.currentTarget.style.color = "var(--pm-fg-muted)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = "oklch(0.28 0.010 265)";
@@ -504,38 +471,11 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
                   <path d="M7 9V3M4.5 5.5L7 3l2.5 2.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M2 10v1.5a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V10" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
                 </svg>
-                {uploading ? "Uploading…" : "Upload image"}
+                Upload image
               </button>
-
-              {/* Or paste URL */}
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <input
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addImageUrl(); } }}
-                  placeholder="Or paste image URL"
-                  style={{ ...INPUT, flex: 1, fontSize: "0.8125rem" }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = "oklch(0.45 0.08 265)")}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--pm-border)")}
-                />
-                <button
-                  type="button"
-                  onClick={addImageUrl}
-                  style={{
-                    padding: "0 0.75rem",
-                    background: "oklch(0.18 0.012 265)",
-                    border: "1px solid var(--pm-border)",
-                    borderRadius: "0.375rem",
-                    color: "var(--pm-fg-muted)",
-                    fontSize: "0.8125rem",
-                    cursor: "pointer",
-                    flexShrink: 0,
-                  }}
-                >
-                  Add
-                </button>
-              </div>
+              <p style={{ fontSize: "0.6875rem", color: "var(--pm-fg-subtle)", marginTop: "0.4rem" }}>
+                JPEG, PNG, WebP or AVIF · up to 5 MB each.{newImages.length > 0 ? " New images upload when you save." : ""}
+              </p>
             </div>
           </div>
         </div>
@@ -555,13 +495,17 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
             type="button"
             onClick={() => router.push("/admin/products")}
             style={{
+              display: "flex",
+              alignItems: "center",
+              minHeight: "2.75rem",
               fontSize: "0.8125rem",
               color: "var(--pm-fg-subtle)",
               background: "none",
               border: "none",
               cursor: "pointer",
-              padding: 0,
+              padding: "0 0.75rem",
               transition: "color 150ms",
+              touchAction: "manipulation",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "var(--pm-fg)")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--pm-fg-subtle)")}
@@ -572,7 +516,11 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
             type="submit"
             disabled={loading}
             style={{
-              padding: "0.625rem 1.75rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "2.75rem",
+              padding: "0 1.75rem",
               background: loading ? "oklch(0.52 0.10 355)" : "var(--pm-accent)",
               border: "none",
               borderRadius: "0.375rem",
@@ -581,6 +529,7 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
               color: "oklch(0.09 0.008 270)",
               cursor: loading ? "not-allowed" : "pointer",
               transition: "background 150ms, opacity 150ms",
+              touchAction: "manipulation",
             }}
             onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "oklch(0.78 0.13 355)"; }}
             onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = "var(--pm-accent)"; }}
@@ -591,5 +540,38 @@ export default function ProductForm({ product, mode }: ProductFormProps) {
       </form>
       <Toast toast={toast} onDismiss={() => setToast(null)} />
     </>
+  );
+}
+
+function ImageThumb({ src, alt, onRemove }: { src: string; alt: string; onRemove: () => void }) {
+  return (
+    <div style={{ position: "relative", aspectRatio: "1", borderRadius: "0.375rem", overflow: "hidden", background: "oklch(0.14 0.010 265)" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="Remove image"
+        style={{
+          position: "absolute",
+          top: "0.25rem",
+          right: "0.25rem",
+          background: "oklch(0.08 0.008 270 / 0.7)",
+          border: "none",
+          borderRadius: "50%",
+          width: "1.25rem",
+          height: "1.25rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          color: "oklch(0.80 0.005 70)",
+        }}
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </button>
+    </div>
   );
 }

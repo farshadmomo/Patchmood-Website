@@ -1,6 +1,8 @@
 import ProgressLink from '@/components/transition/ProgressLink'
+import { getServerDictionary } from '@/i18n/server'
 
-export default function ProductNotFound() {
+export default async function ProductNotFound() {
+  const { t } = await getServerDictionary()
   return (
     <main
       className="flex flex-col items-center justify-center text-center px-6"
@@ -16,14 +18,14 @@ export default function ProductNotFound() {
           marginBottom: '1.5rem',
         }}
       >
-        <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;Specimen not found
+        <span style={{ color: 'var(--pm-accent)' }}>&#9632;</span>&nbsp;&nbsp;{t.notFound.eyebrow}
       </p>
 
       <h1
         className="pm-display text-white"
         style={{ fontSize: 'clamp(3rem, 12vw, 8rem)', lineHeight: 0.9, marginBottom: '1.5rem' }}
       >
-        Off the<br /><span style={{ color: 'var(--pm-accent)' }}>record</span>
+        {t.notFound.titleLine1}<br /><span style={{ color: 'var(--pm-accent)' }}>{t.notFound.titleAccent}</span>
       </h1>
 
       <p
@@ -35,7 +37,7 @@ export default function ProductNotFound() {
           marginBottom: '2.5rem',
         }}
       >
-        This piece isn&rsquo;t in the archive — it may have been retired, or the link slipped a thread.
+        {t.notFound.body}
       </p>
 
       <ProgressLink
@@ -51,8 +53,8 @@ export default function ProductNotFound() {
           textDecoration: 'none',
         }}
       >
-        Back to the archive
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        {t.notFound.cta}
+        <svg className="pm-flip-rtl" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </ProgressLink>

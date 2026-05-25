@@ -163,7 +163,7 @@ export default function TransitionProvider({ children }: { children: React.React
         style={{
           position: 'fixed',
           top: 0,
-          left: 0,
+          insetInlineStart: 0,
           height: '2px',
           width: barWidth,
           opacity: barOpacity,
@@ -194,7 +194,7 @@ export default function TransitionProvider({ children }: { children: React.React
           <div
             style={{
               position: 'absolute',
-              right: 0,
+              insetInlineEnd: 0,
               top: 0,
               bottom: 0,
               width: '5px',
@@ -202,7 +202,7 @@ export default function TransitionProvider({ children }: { children: React.React
               opacity: 0.35,
             }}
           />
-          <div style={{ position: 'absolute', left: 'clamp(1.5rem, 8vw, 6rem)', bottom: 'clamp(3rem, 14vh, 8rem)' }}>
+          <div style={{ position: 'absolute', insetInlineStart: 'clamp(1.5rem, 8vw, 6rem)', bottom: 'clamp(3rem, 14vh, 8rem)' }}>
             <h2
               className="pm-display select-none"
               style={{ fontSize: 'clamp(2.75rem, 9vw, 6rem)', color: 'var(--pm-fg)', lineHeight: 0.9 }}

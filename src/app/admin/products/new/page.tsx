@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function NewProductPage() {
   return (
-    <div style={{ padding: "3rem 2.5rem 4rem", maxWidth: "64rem" }}>
+    <div className="px-4 pt-6 pb-12 md:px-10 md:pt-12 md:pb-16" style={{ maxWidth: "64rem" }}>
       {/* Page header */}
       <header style={{ marginBottom: "2.5rem" }}>
         <nav style={{ marginBottom: "0.75rem" }}>

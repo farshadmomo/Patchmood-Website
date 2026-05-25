@@ -1,19 +1,15 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import type { Product } from '@/types'
+import { getProductBySlug, getRelatedProducts, getProductOrderIds } from '@/lib/data'
 import ProgressLink from '@/components/transition/ProgressLink'
 import ProductGallery from '@/components/products/ProductGallery'
+import { getServerDictionary } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ slug: string }>
 }
 
-async function getProduct(slug: string): Promise<Product | null> {
-  const supabase = await createClient()
-  const { data } = await supabase.from('products').select('*').eq('slug', slug).maybeSingle()
-  return (data as Product) ?? null
-}
+const getProduct = (slug: string) => getProductBySlug(slug)
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
@@ -35,20 +31,15 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const product = await getProduct(slug)
   if (!product) notFound()
 
-  const supabase = await createClient()
-  const [{ data: orderRows }, { data: relatedRows }] = await Promise.all([
-    supabase.from('products').select('id').order('created_at', { ascending: true }),
-    supabase
-      .from('products')
-      .select('*')
-      .eq('category', product.category)
-      .neq('id', product.id)
-      .limit(3),
+  const [orderIds, related] = await Promise.all([
+    getProductOrderIds(),
+    getRelatedProducts(product.category, product.id, 3),
   ])
 
-  const orderIndex = (orderRows ?? []).findIndex((r) => r.id === product.id)
+  const orderIndex = orderIds.findIndex((id) => id === product.id)
   const specimen = String(orderIndex >= 0 ? orderIndex + 1 : 1).padStart(2, '0')
-  const related = (relatedRows ?? []) as Product[]
+
+  const { t } = await getServerDictionary()
 
   return (
     <main style={{ background: 'var(--pm-bg)', minHeight: '100dvh' }}>
@@ -76,7 +67,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             >
               <path d="M14 6H2M6 2L2 6l4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Return to archive
+            {t.detail.returnToArchive}
           </ProgressLink>
           <span
             style={{
@@ -106,7 +97,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
               className="pm-display absolute select-none pointer-events-none"
               style={{
                 top: '-2.5rem',
-                right: '-0.5rem',
+                insetInlineEnd: '-0.5rem',
                 fontSize: 'clamp(8rem, 16vw, 14rem)',
                 lineHeight: 0.7,
                 color: 'transparent',
@@ -130,11 +121,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 }}
               >
                 <span className="inline-block w-7 h-px" style={{ background: 'var(--pm-accent)' }} aria-hidden="true" />
-                {product.featured ? 'Featured piece' : 'Archive piece'}
+                {product.featured ? t.detail.featuredPiece : t.detail.archivePiece}
               </p>
 
               {/* Name */}
               <h1
+                dir="auto"
                 className="pm-display text-white"
                 style={{ fontSize: 'clamp(2.75rem, 6vw, 5rem)', marginBottom: '1.25rem' }}
               >
@@ -144,6 +136,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
               {/* Lead line */}
               {product.short_description && (
                 <p
+                  dir="auto"
                   style={{
                     fontSize: '1.0625rem',
                     color: 'var(--pm-fg)',
@@ -160,6 +153,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
               {/* Body */}
               <p
+                dir="auto"
                 style={{
                   fontSize: '0.9375rem',
                   color: 'var(--pm-fg-muted)',
@@ -173,13 +167,13 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
               {/* Spec table */}
               <dl style={{ marginBottom: '2.25rem' }}>
-                <SpecRow label="Category" value={product.category} />
+                <SpecRow label={t.detail.specCategory} value={product.category} />
                 {product.tags?.length > 0 && (
-                  <SpecRow label="Signals" value={product.tags.join(' · ')} />
+                  <SpecRow label={t.detail.specSignals} value={product.tags.join(' · ')} />
                 )}
-                <SpecRow label="Catalogue" value={`PM–${specimen}`} />
+                <SpecRow label={t.detail.specCatalogue} value={`PM–${specimen}`} />
                 <SpecRow
-                  label="Status"
+                  label={t.detail.specStatus}
                   value={
                     <span className="inline-flex items-center gap-2">
                       <span
@@ -192,7 +186,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                         }}
                         aria-hidden="true"
                       />
-                      In archive
+                      {t.detail.inArchive}
                     </span>
                   }
                 />
@@ -233,9 +227,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   fontWeight: 600,
                   border: 'none',
                 }}
-                aria-label={`Add ${product.name} to collection`}
+                aria-label={t.detail.addAria(product.name)}
               >
-                Add to Collection
+                {t.detail.addToCollection}
               </button>
               <p
                 className="text-center"
@@ -248,7 +242,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   marginTop: '0.875rem',
                 }}
               >
-                Purchasing available soon
+                {t.detail.purchaseSoon}
               </p>
             </div>
           </div>
@@ -256,10 +250,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
         {/* Related */}
         {related.length > 0 && (
-          <section aria-label={`More from ${product.category}`} className="mt-24 md:mt-32">
+          <section aria-label={t.detail.moreFromAria(product.category)} className="mt-24 md:mt-32">
             <div className="flex items-end justify-between mb-6">
               <h2 className="pm-display text-white" style={{ fontSize: 'clamp(1.5rem, 3vw, 2.25rem)' }}>
-                More from <span style={{ color: 'var(--pm-accent)' }}>{product.category}</span>
+                {t.detail.moreFrom} <span style={{ color: 'var(--pm-accent)' }}>{product.category}</span>
               </h2>
               <ProgressLink
                 href="/#collection"
@@ -272,7 +266,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   textDecoration: 'none',
                 }}
               >
-                All pieces
+                {t.detail.allPieces}
               </ProgressLink>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
@@ -307,7 +301,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     )}
                   </div>
                   <div className="flex items-center justify-between px-3.5 py-3" style={{ borderTop: '1px solid var(--pm-border)' }}>
-                    <span className="pm-display text-white truncate" style={{ fontSize: '1rem' }}>
+                    <span dir="auto" className="pm-display text-white truncate" style={{ fontSize: '1rem' }}>
                       {r.name}
                     </span>
                     <svg

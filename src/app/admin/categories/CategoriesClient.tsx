@@ -18,25 +18,12 @@ const INPUT: React.CSSProperties = {
   fontFamily: 'var(--font-body)',
 }
 
-async function uploadCategoryImage(file: File): Promise<{ url?: string; error?: string }> {
-  const fd = new FormData()
-  fd.append('file', file)
-  fd.append('type', 'categories')
-  try {
-    const res = await fetch('/api/upload', { method: 'POST', body: fd })
-    const json = await res.json()
-    return json.success ? { url: json.data.url } : { error: json.error ?? 'Upload failed' }
-  } catch {
-    return { error: 'Upload failed' }
-  }
-}
-
 export default function CategoriesClient({ initialCategories }: { initialCategories: Category[] }) {
   const router = useRouter()
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [name, setName] = useState('')
-  const [newImage, setNewImage] = useState<string | null>(null)
-  const [uploadingNew, setUploadingNew] = useState(false)
+  const [newFile, setNewFile] = useState<File | null>(null)
+  const [newPreview, setNewPreview] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -50,15 +37,13 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
     return [...list].sort((a, b) => a.name.localeCompare(b.name))
   }
 
-  async function handleNewFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleNewFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (newFileRef.current) newFileRef.current.value = ''
     if (!file) return
-    setUploadingNew(true)
-    const { url, error } = await uploadCategoryImage(file)
-    setUploadingNew(false)
-    if (url) setNewImage(url)
-    else setToast({ type: 'error', message: error ?? 'Upload failed' })
+    if (newPreview) URL.revokeObjectURL(newPreview)
+    setNewFile(file)
+    setNewPreview(URL.createObjectURL(file))
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -67,16 +52,17 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
     if (!trimmed) return
     setAdding(true)
     try {
-      const res = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmed, image_url: newImage }),
-      })
+      const fd = new FormData()
+      fd.set('name', trimmed)
+      if (newFile) fd.set('image', newFile)
+      const res = await fetch('/api/categories', { method: 'POST', body: fd })
       const json = await res.json()
       if (json.success) {
         setCategories((prev) => sortCats([...prev, json.data]))
         setName('')
-        setNewImage(null)
+        setNewFile(null)
+        if (newPreview) URL.revokeObjectURL(newPreview)
+        setNewPreview(null)
         setToast({ type: 'success', message: `"${trimmed}" added` })
         router.refresh()
       } else {
@@ -99,28 +85,25 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
     const id = editingIdRef.current
     if (rowFileRef.current) rowFileRef.current.value = ''
     if (!file || !id) return
-    setBusyId(id)
-    const { url, error } = await uploadCategoryImage(file)
-    if (!url) {
-      setBusyId(null)
-      setToast({ type: 'error', message: error ?? 'Upload failed' })
-      return
-    }
-    await patchImage(id, url)
+    const fd = new FormData()
+    fd.set('image', file)
+    await patchImage(id, fd, 'Image updated')
   }
 
-  async function patchImage(id: string, image_url: string | null) {
+  function removeRowImage(id: string) {
+    const fd = new FormData()
+    fd.set('removeImage', 'true')
+    patchImage(id, fd, 'Image removed')
+  }
+
+  async function patchImage(id: string, fd: FormData, successMessage: string) {
     setBusyId(id)
     try {
-      const res = await fetch(`/api/categories/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_url }),
-      })
+      const res = await fetch(`/api/categories/${id}`, { method: 'PATCH', body: fd })
       const json = await res.json()
       if (json.success) {
         setCategories((prev) => prev.map((c) => (c.id === id ? json.data : c)))
-        setToast({ type: 'success', message: image_url ? 'Image updated' : 'Image removed' })
+        setToast({ type: 'success', message: successMessage })
         router.refresh()
       } else {
         setToast({ type: 'error', message: json.error ?? 'Failed' })
@@ -152,7 +135,7 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
   }
 
   return (
-    <div style={{ padding: '3rem 2.5rem 4rem', maxWidth: '46rem' }}>
+    <div className="px-4 pt-6 pb-12 md:px-10 md:pt-12 md:pb-16" style={{ maxWidth: '46rem' }}>
       <header style={{ marginBottom: '2.5rem' }}>
         <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.3em', color: 'var(--pm-fg-subtle)', marginBottom: '0.375rem' }}>
           Admin / Categories
@@ -169,15 +152,13 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
       {/* Add form */}
       <form
         onSubmit={handleAdd}
+        className="flex flex-col sm:flex-row sm:items-end gap-3"
         style={{
           background: 'var(--pm-surface)',
           border: '1px solid var(--pm-border)',
           borderRadius: '0.5rem',
           padding: '1.25rem',
           marginBottom: '2.5rem',
-          display: 'flex',
-          gap: '1rem',
-          alignItems: 'flex-end',
         }}
       >
         {/* Image picker */}
@@ -201,10 +182,8 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
             justifyContent: 'center',
           }}
         >
-          {newImage ? (
-            <Image src={newImage} alt="" fill sizes="72px" unoptimized style={{ objectFit: 'cover' }} />
-          ) : uploadingNew ? (
-            <Spinner />
+          {newPreview ? (
+            <Image src={newPreview} alt="" fill sizes="72px" unoptimized style={{ objectFit: 'cover' }} />
           ) : (
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -229,7 +208,7 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
 
         <button
           type="submit"
-          disabled={adding || uploadingNew || !name.trim()}
+          disabled={adding || !name.trim()}
           style={{
             padding: '0.625rem 1.25rem',
             height: '2.6rem',
@@ -262,14 +241,13 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
           {categories.map((cat, i) => (
             <div
               key={cat.id}
+              className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
                 padding: '0.875rem 1rem',
                 borderBottom: i < categories.length - 1 ? '1px solid oklch(0.14 0.010 265)' : 'none',
               }}
             >
+              <div className="flex items-center gap-3 min-w-0 sm:flex-1">
               {/* Thumbnail */}
               <div
                 style={{
@@ -314,12 +292,14 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
                   {cat.slug}
                 </p>
               </div>
+              </div>
 
               {/* Actions */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+              <div className="flex items-center gap-2 sm:gap-3.5 justify-end">
                 <button
                   onClick={() => triggerRowUpload(cat.id)}
                   disabled={busyId === cat.id}
+                  className={ACTION_CLS}
                   style={actionBtn(busyId === cat.id, 'var(--pm-fg-muted)')}
                   onMouseEnter={(e) => { if (busyId !== cat.id) e.currentTarget.style.color = 'var(--pm-fg)' }}
                   onMouseLeave={(e) => { if (busyId !== cat.id) e.currentTarget.style.color = 'var(--pm-fg-muted)' }}
@@ -328,8 +308,9 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
                 </button>
                 {cat.image_url && (
                   <button
-                    onClick={() => patchImage(cat.id, null)}
+                    onClick={() => removeRowImage(cat.id)}
                     disabled={busyId === cat.id}
+                    className={ACTION_CLS}
                     style={actionBtn(busyId === cat.id, 'var(--pm-fg-subtle)')}
                     onMouseEnter={(e) => { if (busyId !== cat.id) e.currentTarget.style.color = 'var(--pm-fg)' }}
                     onMouseLeave={(e) => { if (busyId !== cat.id) e.currentTarget.style.color = 'var(--pm-fg-subtle)' }}
@@ -341,17 +322,14 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
                   onClick={() => handleDelete(cat)}
                   disabled={deletingId === cat.id}
                   aria-label={`Delete ${cat.name}`}
+                  className={ACTION_CLS}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
                     gap: '0.375rem',
                     fontSize: '0.75rem',
                     color: deletingId === cat.id ? 'var(--pm-fg-subtle)' : 'oklch(0.62 0.20 25)',
-                    background: 'none',
-                    border: 'none',
                     cursor: deletingId === cat.id ? 'not-allowed' : 'pointer',
-                    padding: 0,
                     transition: 'color 150ms',
+                    touchAction: 'manipulation',
                   }}
                 >
                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
@@ -370,18 +348,20 @@ export default function CategoriesClient({ initialCategories }: { initialCategor
   )
 }
 
+// Touch-sized button on mobile (44px, bordered), reverts to compact text link on sm+.
+const ACTION_CLS =
+  'flex items-center justify-center min-h-[2.75rem] px-3 rounded-md border border-[var(--pm-border)] bg-[oklch(0.18_0.012_265)] transition-colors sm:min-h-0 sm:px-0 sm:border-0 sm:bg-transparent sm:rounded-none'
+
 function actionBtn(disabled: boolean, color: string): React.CSSProperties {
   return {
     fontSize: '0.75rem',
     textTransform: 'uppercase',
     letterSpacing: '0.1em',
     color,
-    background: 'none',
-    border: 'none',
     cursor: disabled ? 'not-allowed' : 'pointer',
-    padding: 0,
     transition: 'color 150ms',
     fontFamily: 'var(--font-mono)',
+    touchAction: 'manipulation',
   }
 }
 

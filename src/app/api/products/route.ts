@@ -1,57 +1,36 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/pocketbase/server'
+import { toProduct } from '@/lib/pocketbase/transform'
+import { isAnyAdmin, pbErrorResponse, toSlug } from '@/lib/pocketbase/api'
+import { getProducts } from '@/lib/data'
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json({ success: true, data: await getProducts() })
   } catch {
     return NextResponse.json({ success: false, error: 'Failed to fetch products' }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const pb = await createClient()
 
-  if (!user || user.app_metadata?.role !== 'admin') {
+  if (!isAnyAdmin(pb)) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const body = await request.json()
+    const formData = await request.formData()
 
-    if (!body.slug && body.name) {
-      body.slug = body.name
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/(^-|-$)/g, '')
+    const name = String(formData.get('name') ?? '')
+    if (!formData.get('slug') && name) {
+      formData.set('slug', toSlug(name))
     }
 
-    const { data, error } = await supabase
-      .from('products')
-      .insert(body)
-      .select()
-      .single()
-
-    if (error) {
-      if (error.code === '23505') {
-        return NextResponse.json({ success: false, error: 'A product with this slug already exists' }, { status: 409 })
-      }
-      throw error
-    }
-
-    return NextResponse.json({ success: true, data }, { status: 201 })
-  } catch {
-    return NextResponse.json({ success: false, error: 'Failed to create product' }, { status: 500 })
+    const svc = pb.authStore.isSuperuser ? pb : await createServiceClient()
+    const record = await svc.collection('products').create(formData)
+    return NextResponse.json({ success: true, data: toProduct(record) }, { status: 201 })
+  } catch (err) {
+    return pbErrorResponse(err, 'Failed to create product', 'A product with this slug already exists')
   }
 }

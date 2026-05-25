@@ -3,19 +3,19 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/pocketbase/client'
 import SearchOverlay from './SearchOverlay'
 import MobileMenu from './MobileMenu'
+import LanguageToggle from './LanguageToggle'
 import ProgressLink from '@/components/transition/ProgressLink'
 import CometTrail from '@/components/ui/CometTrail'
-
-const LINKS: { id: string; label: string }[] = [
-  { id: '', label: 'Index' },
-  { id: 'collection', label: 'Curator' },
-  { id: 'pieces', label: 'Collectors' },
-]
+import { useLocale } from '@/i18n/LocaleProvider'
 
 const hrefFor = (id: string) => (id ? `/#${id}` : '/')
+
+// In the static JSON (Vercel) deploy there's no PocketBase, so login/admin
+// can't function — hide the auth entry points entirely.
+const JSON_MODE = process.env.NEXT_PUBLIC_DATA_SOURCE === 'json'
 
 // Reliable in-page scroll — bypasses the flaky native hash jump on the
 // 500vh GSAP sticky hero. Offsets for the 64px fixed navbar.
@@ -37,6 +37,11 @@ export interface NavbarInitialUser {
 
 export default function Navbar({ initialUser = null }: { initialUser?: NavbarInitialUser | null }) {
   const router = useRouter()
+  const { t } = useLocale()
+  const LINKS: { id: string; label: string }[] = [
+    { id: '', label: t.nav.index },
+    { id: 'collection', label: t.nav.collection },
+  ]
   const [scrolled, setScrolled] = useState(false)
   const [userInitial, setUserInitial] = useState<string | null>(initialUser?.initial ?? null)
   const [isAdmin, setIsAdmin] = useState(initialUser?.isAdmin ?? false)
@@ -56,8 +61,8 @@ export default function Navbar({ initialUser = null }: { initialUser?: NavbarIni
 
   async function handleSignOut() {
     setSigningOut(true)
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    const pb = createClient()
+    pb.authStore.clear()
     router.push('/')
     router.refresh()
   }
@@ -77,25 +82,25 @@ export default function Navbar({ initialUser = null }: { initialUser?: NavbarIni
   }, [])
 
   useEffect(() => {
-    const supabase = createClient()
+    const pb = createClient()
 
-    async function syncUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserInitial((user.email?.[0] ?? '?').toUpperCase())
-        setIsAdmin(user.app_metadata?.role === 'admin')
+    function syncUser() {
+      const record = pb.authStore.record
+      if (pb.authStore.isValid && record) {
+        setUserInitial((record.email?.[0] ?? '?').toUpperCase())
+        setIsAdmin(pb.authStore.isValid)
       } else {
         setUserInitial(null)
         setIsAdmin(false)
       }
     }
 
-    // Only subscribe to auth changes — initialUser from the server is already fresh
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    // Subscribe to auth changes — initialUser from the server is already fresh
+    const unsubscribe = pb.authStore.onChange(() => {
       syncUser()
     })
 
-    return () => subscription.unsubscribe()
+    return () => unsubscribe()
   }, [])
 
   return (
@@ -132,7 +137,7 @@ export default function Navbar({ initialUser = null }: { initialUser?: NavbarIni
           type="button"
           className="pm-burger md:hidden"
           data-open={mobileOpen}
-          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-label={mobileOpen ? t.mobile.closeMenu : t.mobile.openMenu}
           aria-expanded={mobileOpen}
           aria-controls="mobile-menu"
           onClick={() => setMobileOpen((v) => !v)}
@@ -171,9 +176,10 @@ export default function Navbar({ initialUser = null }: { initialUser?: NavbarIni
             pointerEvents: mobileOpen ? 'none' : 'auto',
           }}
         >
+          <LanguageToggle />
           <button
             onClick={() => setSearchOpen(true)}
-            aria-label="Search"
+            aria-label={t.nav.search}
             className="flex items-center justify-center w-8 h-8 transition-colors duration-200"
             style={{ color: 'var(--pm-fg-muted)' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--pm-fg)')}
@@ -184,11 +190,11 @@ export default function Navbar({ initialUser = null }: { initialUser?: NavbarIni
               <path d="M11 11l3.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
             </svg>
           </button>
-          {userInitial ? (
+          {JSON_MODE ? null : userInitial ? (
             <div style={{ position: 'relative' }}>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                aria-label="Account menu"
+                aria-label={t.nav.accountMenu}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -220,7 +226,7 @@ export default function Navbar({ initialUser = null }: { initialUser?: NavbarIni
                     style={{
                       position: 'absolute',
                       top: 'calc(100% + 8px)',
-                      right: 0,
+                      insetInlineEnd: 0,
                       minWidth: '140px',
                       background: 'oklch(0.12 0.008 265)',
                       border: '1px solid var(--pm-border)',
@@ -245,7 +251,7 @@ export default function Navbar({ initialUser = null }: { initialUser?: NavbarIni
                           borderBottom: '1px solid var(--pm-border)',
                         }}
                       >
-                        Admin panel
+                        {t.nav.adminPanel}
                       </ProgressLink>
                     )}
                     <button
@@ -271,7 +277,7 @@ export default function Navbar({ initialUser = null }: { initialUser?: NavbarIni
                       onMouseLeave={(e) => { if (!signingOut) e.currentTarget.style.color = 'var(--pm-fg-muted)' }}
                     >
                       {signingOut && <CometTrail />}
-                      {signingOut ? 'Signing out…' : 'Sign out'}
+                      {signingOut ? t.nav.signingOut : t.nav.signOut}
                     </button>
                   </div>
                 </>
@@ -295,7 +301,7 @@ export default function Navbar({ initialUser = null }: { initialUser?: NavbarIni
                 e.currentTarget.style.color = 'var(--pm-fg)'
               }}
             >
-              Sign in
+              {t.nav.signIn}
             </Link>
           )}
         </div>
