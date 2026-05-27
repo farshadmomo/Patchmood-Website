@@ -316,9 +316,8 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
               <ProgressLink
                 href={`/products/${featuredProduct.slug}`}
                 aria-label={t.card.viewFeatured(featuredProduct.name)}
-                className="group relative block w-full overflow-hidden cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="group relative flex flex-col md:flex-row w-full overflow-hidden cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2 md:min-h-[440px]"
                 style={{
-                  minHeight: '440px',
                   border: '1px solid var(--pm-border)',
                   transition: 'border-color 300ms',
                   textDecoration: 'none',
@@ -326,10 +325,9 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--pm-accent-dim)')}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--pm-border)')}
               >
-                {/* Leading — image swatch */}
+                {/* Leading — image swatch (top on mobile, left half on desktop) */}
                 <div
-                  className="absolute inset-y-0 w-1/2 md:w-5/12 overflow-hidden"
-                  style={{ insetInlineStart: 0 }}
+                  className="relative w-full aspect-[16/10] md:aspect-auto md:w-5/12 shrink-0 overflow-hidden"
                   aria-hidden="true"
                 >
                   {featuredProduct.images[0] ? (
@@ -348,8 +346,8 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
 
                 {/* Trailing — content */}
                 <div
-                  className="relative z-10 w-1/2 md:w-7/12 h-full flex flex-col justify-center px-7 md:px-14 py-12"
-                  style={{ minHeight: '440px', background: 'var(--pm-surface)', marginInlineStart: 'auto' }}
+                  className="relative z-10 w-full md:w-7/12 flex flex-col justify-center px-6 sm:px-8 md:px-14 py-9 md:py-12"
+                  style={{ background: 'var(--pm-surface)' }}
                 >
                   <div className="flex items-center justify-between mb-5">
                     <div
@@ -404,7 +402,7 @@ export default function ProductCatalog({ products, categories }: ProductCatalogP
           {/* Grid */}
           {gridProducts.length > 0 && (
             <div className="px-5 md:px-10 max-w-[88rem] mx-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                 {gridProducts.map((product, i) => (
                   <ProductCard
                     key={product.id}

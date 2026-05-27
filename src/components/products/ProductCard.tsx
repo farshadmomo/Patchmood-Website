@@ -34,10 +34,12 @@ export default function ProductCard({ product, index, size = 'default' }: Produc
         e.currentTarget.style.boxShadow = 'none'
       }}
     >
-      {/* Swatch */}
+      {/* Swatch — uniform aspect on mobile (clean 2-col rows), height rhythm on desktop */}
       <div
-        className="relative overflow-hidden"
-        style={{ height: size === 'tall' ? '380px' : '300px', background: 'var(--pm-bg-deep)' }}
+        className={`relative overflow-hidden aspect-[4/5] sm:aspect-auto ${
+          size === 'tall' ? 'sm:h-[380px]' : 'sm:h-[300px]'
+        }`}
+        style={{ background: 'var(--pm-bg-deep)' }}
         aria-hidden="true"
       >
         {product.images[0] && (
@@ -91,14 +93,14 @@ export default function ProductCard({ product, index, size = 'default' }: Produc
 
       {/* Footer strip */}
       <div
-        className="flex items-center justify-between px-4 py-3.5"
+        className="flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3.5"
         style={{ borderTop: '1px solid var(--pm-border)', background: 'var(--pm-surface)' }}
       >
         <div className="min-w-0">
           <p
             dir="auto"
-            className="pm-display text-white truncate"
-            style={{ fontSize: '1.0625rem', letterSpacing: '0.01em' }}
+            className="pm-display text-white truncate text-[0.9375rem] sm:text-[1.0625rem]"
+            style={{ letterSpacing: '0.01em' }}
           >
             {product.name}
           </p>
@@ -117,7 +119,7 @@ export default function ProductCard({ product, index, size = 'default' }: Produc
           {product.tags?.length > 0 && (
             <p
               dir="auto"
-              className="truncate"
+              className="truncate hidden sm:block"
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontSize: '0.5625rem',

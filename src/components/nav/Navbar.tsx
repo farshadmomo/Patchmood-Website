@@ -168,14 +168,8 @@ export default function Navbar({ initialUser = null }: { initialUser?: NavbarIni
           Patch<span style={{ color: 'var(--pm-accent)' }}>mood</span>
         </Link>
 
-        {/* Right — actions */}
-        <div
-          className="flex items-center justify-end gap-3 md:gap-4 flex-1 transition-opacity duration-200"
-          style={{
-            opacity: mobileOpen ? 0 : 1,
-            pointerEvents: mobileOpen ? 'none' : 'auto',
-          }}
-        >
+        {/* Right — actions (desktop only; on mobile these live in the drawer) */}
+        <div className="hidden md:flex items-center justify-end gap-3 md:gap-4 flex-1">
           <LanguageToggle />
           <button
             onClick={() => setSearchOpen(true)}

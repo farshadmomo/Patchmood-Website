@@ -82,8 +82,9 @@ export default function HeroSection() {
   }, [])
 
   return (
-    // 500vh gives the scroll space for video scrubbing
-    <div ref={containerRef} style={{ height: '500vh' }} className="relative">
+    // Scroll length that drives the video scrub. Kept short so the hero doesn't
+    // hijack the page — even shorter on mobile where long scrolls are tedious.
+    <div ref={containerRef} className="relative h-[180vh] md:h-[260vh]">
       {/* Sticky container — holds both video and text overlay */}
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-black">
         {/* Loading backdrop */}
