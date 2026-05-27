@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect } from 'react'
 import { gsap, ScrollTrigger } from '@/lib/gsap'
 import { useScrollVideo } from '@/hooks/useScrollVideo'
 import { useLocale } from '@/i18n/LocaleProvider'
@@ -11,18 +11,22 @@ export default function HeroSection() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const taglineRef = useRef<HTMLParagraphElement>(null)
-  const [videoLoaded, setVideoLoaded] = useState(false)
-
-  // Handle cached video — readyState already ≥ 1 before handler attaches
+  // Warm the decoder so the first scroll-scrub doesn't stall: once metadata is
+  // in, nudge currentTime to force the first frame to decode and paint. The
+  // poster covers the gap until then, so there's no black flash either.
   useEffect(() => {
     const v = videoRef.current
-    if (v && v.readyState >= 1) {
-      setVideoLoaded(true)
-      return
+    if (!v) return
+    const warm = () => {
+      try {
+        v.currentTime = 0.04
+      } catch {
+        /* seek can throw if metadata vanished mid-tick — harmless */
+      }
     }
-    // Fallback: show video after 3s regardless
-    const t = setTimeout(() => setVideoLoaded(true), 3000)
-    return () => clearTimeout(t)
+    if (v.readyState >= 1) warm()
+    else v.addEventListener('loadedmetadata', warm, { once: true })
+    return () => v.removeEventListener('loadedmetadata', warm)
   }, [])
 
   // Scrub video currentTime with scroll progress
@@ -87,22 +91,18 @@ export default function HeroSection() {
     <div ref={containerRef} className="relative h-[180vh] md:h-[260vh]">
       {/* Sticky container — holds both video and text overlay */}
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-black">
-        {/* Loading backdrop */}
-        {!videoLoaded && (
-          <div className="absolute inset-0 bg-black" />
-        )}
-
-        {/* Scroll-scrubbed video */}
+        {/* Scroll-scrubbed video. The poster is the first frame, shown instantly
+            while the clip downloads + decodes, so there's no black flash. With a
+            <1 MB file, preload=auto fetches the whole thing up front — the first
+            seek then never stalls on the network. */}
         <video
           ref={videoRef}
           src="/video/hero.mp4"
+          poster="/video/hero-poster.jpg"
           muted
           playsInline
-          preload="metadata"
-          onLoadedMetadata={() => setVideoLoaded(true)}
-          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
-          style={{ opacity: videoLoaded ? 1 : 0 }}
-          // metadata-only: stops the eager multi-MB download from blocking first paint
+          preload="auto"
+          className="absolute inset-0 h-full w-full object-cover"
         />
 
         {/* Gradient overlay for text legibility — heavier bottom-left for the title block */}
