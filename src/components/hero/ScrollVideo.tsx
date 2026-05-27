@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { gsap, ScrollTrigger } from '@/lib/gsap'
 import { useScrollVideo } from '@/hooks/useScrollVideo'
 import { useLocale } from '@/i18n/LocaleProvider'
@@ -11,9 +11,26 @@ export default function HeroSection() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const taglineRef = useRef<HTMLParagraphElement>(null)
+
+  // Scroll-scrubbing a video is a desktop effect — on mobile the per-seek decode
+  // cost stutters badly and the landscape clip crops to an ugly zoom. So phones
+  // get a square clip that just autoplay-loops (smooth, no seeking). Default to
+  // desktop during SSR; correct on mount to avoid a hydration mismatch.
+  const [isMobile, setIsMobile] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+    const mq = window.matchMedia('(max-width: 767px)')
+    const sync = () => setIsMobile(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
   // Warm the decoder so the first scroll-scrub doesn't stall: once metadata is
   // in, nudge currentTime to force the first frame to decode and paint. The
   // poster covers the gap until then, so there's no black flash either.
+  // No-op on mobile (videoRef isn't attached to the autoplay clip there).
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
@@ -91,19 +108,36 @@ export default function HeroSection() {
     <div ref={containerRef} className="relative h-[180vh] md:h-[260vh]">
       {/* Sticky container — holds both video and text overlay */}
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-black">
-        {/* Scroll-scrubbed video. The poster is the first frame, shown instantly
-            while the clip downloads + decodes, so there's no black flash. With a
-            <1 MB file, preload=auto fetches the whole thing up front — the first
-            seek then never stalls on the network. */}
-        <video
-          ref={videoRef}
-          src="/video/hero.mp4"
-          poster="/video/hero-poster.jpg"
-          muted
-          playsInline
-          preload="auto"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        {mounted && isMobile ? (
+          /* Mobile: square clip that autoplay-loops — no scroll-scrub, so no
+             per-seek decode stutter. Centered framing survives the portrait crop. */
+          <video
+            key="mobile"
+            src="/video/hero-mobile.mp4"
+            poster="/video/hero-mobile-poster.jpg"
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          /* Desktop: scroll-scrubbed clip. Poster = first frame, shown instantly
+             (no black flash). preload stays 'none' until mount so phones never
+             fetch this file before we've switched them to the mobile clip; once
+             we know it's desktop it flips to 'auto' and buffers the whole <1 MB. */
+          <video
+            key="desktop"
+            ref={videoRef}
+            src="/video/hero.mp4"
+            poster="/video/hero-poster.jpg"
+            muted
+            playsInline
+            preload={mounted ? 'auto' : 'none'}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
 
         {/* Gradient overlay for text legibility — heavier bottom-left for the title block */}
         <div
