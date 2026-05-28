@@ -27,13 +27,16 @@ export default function HeroSection() {
     return () => mq.removeEventListener('change', sync)
   }, [])
 
-  // Warm the decoder so the first scroll-scrub doesn't stall: once metadata is
-  // in, nudge currentTime to force the first frame to decode and paint. The
-  // poster covers the gap until then, so there's no black flash either.
+  // Buffer + warm the decoder: call load() so the browser actually starts
+  // downloading (browsers ignore preload attr changes after initial parse),
+  // then nudge currentTime once metadata arrives to decode the first frame.
   // No-op on mobile (videoRef isn't attached to the autoplay clip there).
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
+    // Explicit load() is required — changing the preload attribute via React
+    // after initial render does NOT trigger buffering on its own.
+    v.load()
     const warm = () => {
       try {
         v.currentTime = 0.04
@@ -41,8 +44,7 @@ export default function HeroSection() {
         /* seek can throw if metadata vanished mid-tick — harmless */
       }
     }
-    if (v.readyState >= 1) warm()
-    else v.addEventListener('loadedmetadata', warm, { once: true })
+    v.addEventListener('loadedmetadata', warm, { once: true })
     return () => v.removeEventListener('loadedmetadata', warm)
   }, [])
 
@@ -134,7 +136,7 @@ export default function HeroSection() {
             poster="/video/hero-poster.jpg"
             muted
             playsInline
-            preload={mounted ? 'auto' : 'none'}
+            preload="auto"
             className="absolute inset-0 h-full w-full object-cover"
           />
         )}
