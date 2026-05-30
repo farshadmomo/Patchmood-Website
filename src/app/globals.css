@@ -31,9 +31,11 @@
 }
 
 /* ─── Base ─── */
-html {
-  scroll-behavior: smooth;
-}
+/* NOTE: no global `scroll-behavior: smooth` on <html>. It animated the
+   scroll-to-top that App Router performs on every route change, so opening a
+   product page from far down the home page visibly "scrolled up from the
+   bottom". In-page section scrolling (navbar links) is driven explicitly in JS
+   with `behavior: 'smooth'`, so it stays smooth without this rule. */
 
 body {
   background: var(--pm-bg);
